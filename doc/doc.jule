@@ -1,0 +1,46 @@
+// Copyright 2025 The Jule Programming Language.
+// Use of this source code is governed by a BSD 3-Clause
+// license that can be found in the LICENSE file.
+
+// Documentation owner type.
+type Owner: int
+
+const Var = 1 << 0
+const Func = 1 << 1
+const Struct = 1 << 2
+const Trait = 1 << 3
+const Enum = 1 << 4
+const TypeEnum = 1 << 5
+const TypeAlias = 1 << 6
+const StrictTypeAlias = 1 << 7
+
+// Entire documentation of an entry.
+struct Doc {
+	Code:  str // Formatted code representation of the documentation owner.
+	Name:  str // Name of the owner.
+	Owner: Owner
+	Ctx:   []Context
+	Meta:  Meta
+}
+
+// List of Context node types.
+enum ContextNode: type {
+	Separator,
+	Text,
+	ListItem,
+}
+
+// Documentation context.
+struct Context {
+	Indent: int
+	Node:   ContextNode
+}
+
+// Plain text.
+type Text: str
+
+// List item text.
+type ListItem: str
+
+// Separator.
+type Separator: bool
