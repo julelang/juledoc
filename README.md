@@ -39,6 +39,6 @@ Any contribution to JuleFmt is greatly appreciated, whether it's a typo fix, a b
 
 ## License
 
-The reference compiler, API, and standard library are distributed under the terms of the BSD 3-Clause license. <br>
+The JuleDoc is distributed under the terms of the BSD 3-Clause license. <br>
 [See License Details](./LICENSE)
 
