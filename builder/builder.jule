@@ -185,6 +185,13 @@ impl Builder {
 			}
 			meta.Traits = append(meta.Traits, self.formatType(ast.Base))
 		}
+		for (_, mut s) in ast.Statics {
+			mut node := ast::Node{
+				Token: s.Token,
+				Data: s,
+			}
+			meta.Statics = append(meta.Statics, self.node(node))
+		}
 		for (_, mut m) in ast.Methods {
 			mut node := ast::Node{
 				Token: m.Token,

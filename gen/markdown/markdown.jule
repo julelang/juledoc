@@ -200,6 +200,23 @@ impl gen {
 		}
 	}
 
+	fn statics(mut &self, doc: []&doc::Doc) {
+		if len(doc) == 0 {
+			ret
+		}
+		self.out.WriteStr("\n\n### Statics")!
+		for _, node in doc {
+			self.out.WriteStr("\n\n")!
+			self.pushJmp(node, 1)
+			self.out.WriteStr("#### ")!
+			self.out.WriteStr(node.Name)!
+			self.out.WriteStr("\n```jule\n")!
+			self.out.WriteStr(node.Code)!
+			self.out.WriteStr("\n```\n")!
+			self.gendoc(node)
+		}
+	}
+
 	fn methods(mut &self, doc: []&doc::Doc) {
 		mut header := new(bool)
 		iter := fn(_static: bool) {
@@ -244,6 +261,7 @@ impl gen {
 		}
 		meta := (&doc::MetaStruct)(doc.Meta)
 		self.implTraits(meta.Traits)
+		self.statics(meta.Statics)
 		self.methods(meta.Methods)
 	}
 
