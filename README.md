@@ -4,7 +4,7 @@
 </p>
 <h1>JuleDoc</h1>
 
-The official documentation tool for the Jule programming language.
+Official documentation generator for the Jule programming language.
 
 [Contributing](./CONTRIBUTING.md) |
 [Community](https://jule.dev/community)
@@ -15,7 +15,7 @@ The official documentation tool for the Jule programming language.
 
 ## Intoduction
 
-The JuleDoc is the official tool to generation documentation from your Jule code.
+The JuleDoc is the official tool for generating documentation from Jule code.
 
 It is still in work-in-progress and there is no release yet.
 
@@ -32,13 +32,12 @@ Our main community platforms:
 
 ## Contributing
 
-Any contribution to JuleFmt is greatly appreciated, whether it's a typo fix, a brand new feature, or a bug report.
+Any contribution to JuleDoc is greatly appreciated, whether it's a typo fix, a brand new feature, or a bug report.
 
 - Please read [Julenour Code of Conduct](https://jule.dev/code-of-conduct) before contributing anything
 - To contribute, please read the [contribution guidelines](./CONTRIBUTING.md)
 
 ## License
 
-The JuleDoc is distributed under the terms of the BSD 3-Clause license. <br>
+JuleDoc is distributed under the terms of the BSD 3-Clause license. <br>
 [See License Details](./LICENSE)
-
