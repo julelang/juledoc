@@ -67,8 +67,11 @@ impl gen {
 	// Generates jmp item by doc and indent.
 	fn pushJmp(mut &self, doc: &doc::Doc, indent: int) {
 		// Jump table have content. Add new-line.
+		// Otherwise add the index title.
 		if self.jmp.Len() > 0 {
 			self.jmp.WriteStr("\\\n")!
+		} else {
+			self.jmp.WriteStr("# Index\n\n")!
 		}
 		// Write indentation.
 		self.jmp.WriteStr(strings::Repeat(space, spacePerIndent*indent))!
