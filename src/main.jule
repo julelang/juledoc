@@ -1,0 +1,107 @@
+// Copyright 2025 The Jule Programming Language.
+// Use of this source code is governed by a BSD 3-Clause
+// license that can be found in the LICENSE file.
+
+use "builder"
+use "doc"
+use "gen/markdown"
+use "std/jule"
+use "std/jule/parser"
+use "std/jule/token"
+use "std/os"
+use "std/os/filepath"
+use "std/strings"
+
+fn writeError(message: str) {
+	os::Stderr().WriteStr(message)!
+	os::Stderr().WriteByte('\n')!
+}
+
+// Generates documentation data with path, and returns result.
+// If result is nil, we have an error(s).
+fn doc(path: str, mut data: []byte): []&doc::Doc {
+	mut file := token::Fileset.New(path)
+	unsafe { file.FillMut(data) }
+	mut errors := token::Lex(file, token::LexMode.Comment)
+	if len(errors) > 0 {
+		writeError("error: file could not formatted, have error(s): " + path)
+		ret nil
+	}
+
+	mut cm := builder::BuildCommentMap(file.Tokens)
+	mut finfo := parser::ParseFile(file)
+	if len(finfo.Errors) > 0 {
+		writeError("error: file could not formatted, have error(s): " + path)
+		ret nil
+	}
+
+	builder := builder::New(finfo.AST, cm)
+	ret builder.Build()
+}
+
+fn docdoc(mut doc: []&doc::Doc): []byte {
+	mut bytes := markdown::Gen(doc)
+	ret bytes
+}
+
+fn saveFile(path: str, ctx: []byte) {
+	os::File.Write(path, ctx, 0o660) else {
+		writeError("error: could not write to file: " + path)
+		ret
+	}
+}
+
+fn docFile(path: str) {
+	mut doc := doc(path, os::File.Read(path) else {
+		writeError("error: file could not read: " + path)
+		ret
+	})
+	docdoc(doc)
+}
+
+fn docPackage(path: str) {
+	mut dirents := os::Dir.Read(path) else {
+		writeError("error: connot read package directory: " + path)
+		ret
+	}
+	mut alldoc := ([]&doc::Doc)(nil)
+	for _, dirent in dirents {
+		// Skip directories, and non-jule files.
+		if dirent.Stat.IsDir() || !strings::HasSuffix(dirent.Name, jule::Ext) {
+			continue
+		}
+		filepath := filepath::Join(path, dirent.Name)
+		mut doc := doc(filepath, os::File.Read(filepath) else {
+			writeError("error: file could not read: " + filepath)
+			ret
+		})
+		alldoc = append(alldoc, doc...)
+	}
+	bytes := docdoc(alldoc)
+	saveFile("output.md", bytes)
+}
+
+fn docCommand(path: str) {
+	stat := os::Stat.Of(path) else {
+		writeError("error: connot read path: " + path)
+		ret
+	}
+	match {
+	| stat.IsDir():
+		docPackage(path)
+		ret
+	| stat.IsReg():
+		if strings::HasSuffix(path, jule::Ext) {
+			docFile(path)
+			ret
+		}
+	}
+	writeError("error: path is not supported: " + path)
+}
+
+fn main() {
+	mut args := os::Args()
+	if len(args) > 1 {
+		docCommand(args[1])
+	}
+}
