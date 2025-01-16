@@ -67,11 +67,14 @@ fn BuildCommentMap(mut &tokens: []&token::Token): &CommentMap {
 			i++
 			continue
 		}
-		cm.buf = append(cm.buf, &comment{
-			row: token.Row,
-			col: token.Column,
-			txt: token.Kind,
-		})
+		// Ignore range comments.
+		if token.Kind[1] != '*' {
+			cm.buf = append(cm.buf, &comment{
+				row: token.Row,
+				col: token.Column,
+				txt: token.Kind,
+			})
+		}
 		_ = copy(tokens[i:], tokens[i+1:])
 		tokens = tokens[:len(tokens)-1]
 	}
