@@ -104,7 +104,7 @@ impl gen {
 		self.jmp.WriteByte(']')!
 		// Write link.
 		self.jmp.WriteStr("(#")!
-		self.jmp.WriteStr(doc.Name)!
+		self.jmp.WriteStr(strings::ToLower(doc.Name))!
 		n, ok := self.jmpc[doc.Name]
 		self.jmpc[doc.Name] = n + 1
 		// If this content exist already, write count.
