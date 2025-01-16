@@ -71,7 +71,7 @@ impl gen {
 		if self.jmp.Len() > 0 {
 			self.jmp.WriteStr("\\\n")!
 		} else {
-			self.jmp.WriteStr("# Index\n\n")!
+			self.jmp.WriteStr("## Index\n\n")!
 		}
 		// Write indentation.
 		self.jmp.WriteStr(strings::Repeat(space, spacePerIndent*indent))!
@@ -122,13 +122,13 @@ impl gen {
 				continue
 			}
 			if !header {
-				self.out.WriteStr("# Globals\n\n")!
+				self.out.WriteStr("## Globals\n\n")!
 				header = true
 			} else {
 				self.out.WriteStr("\n\n")!
 			}
 			self.pushJmp(node, 0)
-			self.out.WriteStr("## ")!
+			self.out.WriteStr("### ")!
 			self.out.WriteStr(node.Name)!
 			self.out.WriteStr("\n```jule\n")!
 			self.out.WriteStr(node.Code)!
@@ -144,13 +144,13 @@ impl gen {
 				continue
 			}
 			if !header {
-				self.out.WriteStr("# Functions\n\n")!
+				self.out.WriteStr("## Functions\n\n")!
 				header = true
 			} else {
 				self.out.WriteStr("\n\n")!
 			}
 			self.pushJmp(node, 0)
-			self.out.WriteStr("## ")!
+			self.out.WriteStr("### ")!
 			self.out.WriteStr(node.Name)!
 			self.out.WriteStr("\n```jule\n")!
 			self.out.WriteStr(node.Code)!
@@ -166,13 +166,13 @@ impl gen {
 				continue
 			}
 			if !header {
-				self.out.WriteStr("# Type Aliases\n\n")!
+				self.out.WriteStr("## Type Aliases\n\n")!
 				header = true
 			} else {
 				self.out.WriteStr("\n\n")!
 			}
 			self.pushJmp(node, 0)
-			self.out.WriteStr("## ")!
+			self.out.WriteStr("### ")!
 			self.out.WriteStr(node.Name)!
 			self.out.WriteStr("\n```jule\n")!
 			self.out.WriteStr(node.Code)!
@@ -188,13 +188,13 @@ impl gen {
 				continue
 			}
 			if !header {
-				self.out.WriteStr("# Traits\n\n")!
+				self.out.WriteStr("## Traits\n\n")!
 				header = true
 			} else {
 				self.out.WriteStr("\n\n")!
 			}
 			self.pushJmp(node, 0)
-			self.out.WriteStr("## ")!
+			self.out.WriteStr("### ")!
 			self.out.WriteStr(node.Name)!
 			self.out.WriteStr("\n```jule\n")!
 			self.out.WriteStr(node.Code)!
@@ -204,10 +204,6 @@ impl gen {
 	}
 
 	fn statics(mut &self, doc: []&doc::Doc) {
-		if len(doc) == 0 {
-			ret
-		}
-		self.out.WriteStr("\n\n### Statics")!
 		for _, node in doc {
 			self.out.WriteStr("\n\n")!
 			self.pushJmp(node, 1)
@@ -221,18 +217,12 @@ impl gen {
 	}
 
 	fn methods(mut &self, doc: []&doc::Doc) {
-		mut header := new(bool)
 		iter := fn(_static: bool) {
 			for _, node in doc {
 				if _static != strings::HasPrefix(node.Code, "static ") {
 					continue
 				}
-				if !*header {
-					self.out.WriteStr("\n\n### Methods\n\n")!
-					*header = true
-				} else {
-					self.out.WriteStr("\n\n")!
-				}
+				self.out.WriteStr("\n\n")!
 				self.pushJmp(node, 1)
 				self.out.WriteStr("#### ")!
 				self.out.WriteStr(node.Name)!
@@ -250,7 +240,7 @@ impl gen {
 		if len(traits) == 0 {
 			ret
 		}
-		self.out.WriteStr("\n\n### Implemented Traits\n")!
+		self.out.WriteStr("\n\n#### Implemented Traits\n")!
 		for _, t in traits {
 			self.out.WriteStr("\n- `")!
 			self.out.WriteStr(t)!
@@ -275,13 +265,13 @@ impl gen {
 				continue
 			}
 			if !header {
-				self.out.WriteStr("# Structs\n\n")!
+				self.out.WriteStr("## Structs\n\n")!
 				header = true
 			} else {
 				self.out.WriteStr("\n\n")!
 			}
 			self.pushJmp(node, 0)
-			self.out.WriteStr("## ")!
+			self.out.WriteStr("### ")!
 			self.out.WriteStr(node.Name)!
 			self.out.WriteStr("\n```jule\n")!
 			self.out.WriteStr(node.Code)!
@@ -298,13 +288,13 @@ impl gen {
 				continue
 			}
 			if !header {
-				self.out.WriteStr("# Enums\n\n")!
+				self.out.WriteStr("## Enums\n\n")!
 				header = true
 			} else {
 				self.out.WriteStr("\n\n")!
 			}
 			self.pushJmp(node, 0)
-			self.out.WriteStr("## ")!
+			self.out.WriteStr("### ")!
 			self.out.WriteStr(node.Name)!
 			self.out.WriteStr("\n```jule\n")!
 			self.out.WriteStr(node.Code)!
