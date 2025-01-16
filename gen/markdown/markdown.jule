@@ -1,0 +1,336 @@
+// Copyright 2025 The Jule Programming Language.
+// Use of this source code is governed by a BSD 3-Clause
+// license that can be found in the LICENSE file.
+
+use "doc"
+use "std/conv"
+use "std/strings"
+
+const space = "&nbsp;"
+const spacePerIndent = 4
+
+// Generates Markdown documentation from documentation data.
+struct gen {
+	jmp:  strings::Builder // Jump table (aka contents list).
+	jmpc: map[str]int      // Counter for jump table contents.
+	out:  strings::Builder // Whole page.
+}
+
+impl gen {
+	fn gendoc(mut &self, doc: &doc::Doc) {
+		mut indent := 0 // Last seen indent.
+		mut lastIsListItem := false
+		mut lastIsSeparator := false
+		for i, ctx in doc.Ctx {
+			match type ctx.Node {
+			| doc::Separator:
+				self.out.WriteStr("\n\n")!
+				indent = 0
+				lastIsListItem = false
+				lastIsSeparator = true
+				continue
+			| doc::Text:
+				// Write new-line if indent combo breaks and at least one context written.
+				// Otherwise concat the context with previous content.
+				if i > 0 && !lastIsSeparator {
+					if indent != ctx.Indent {
+						if lastIsListItem {
+							self.out.WriteStr("\n\n")!
+						} else {
+							self.out.WriteStr("<br>\n")!
+						}
+					} else {
+						self.out.WriteByte(' ')!
+					}
+				}
+				txt := doc::Text(ctx.Node)
+				self.out.WriteStr(str(txt))!
+				lastIsListItem = false
+			| doc::ListItem:
+				if i > 0 && !lastIsSeparator {
+					if lastIsListItem {
+						self.out.WriteByte('\n')!
+					} else {
+						self.out.WriteStr("<br>\n\n")!
+					}
+				}
+				self.out.WriteStr("- ")!
+				txt := doc::ListItem(ctx.Node)
+				self.out.WriteStr(str(txt))!
+				lastIsListItem = true
+			}
+			lastIsSeparator = false
+			indent = ctx.Indent
+		}
+	}
+
+	// Generates jmp item by doc and indent.
+	fn pushJmp(mut &self, doc: &doc::Doc, indent: int) {
+		// Jump table have content. Add new-line.
+		if self.jmp.Len() > 0 {
+			self.jmp.WriteStr("\\\n")!
+		}
+		// Write indentation.
+		self.jmp.WriteStr(strings::Repeat(space, spacePerIndent*indent))!
+		// Write context from code.
+		self.jmp.WriteByte('[')!
+		match doc.Owner {
+		| doc::Var:
+			i := strings::IndexAny(doc.Code, ":=")
+			self.jmp.WriteStr(doc.Code[:i])!
+		| doc::Func:
+			self.jmp.WriteStr(doc.Code)!
+		| doc::Struct:
+			self.jmp.WriteStr("struct ")!
+			self.jmp.WriteStr(doc.Name)!
+		| doc::Trait:
+			self.jmp.WriteStr("trait ")!
+			self.jmp.WriteStr(doc.Name)!
+		| doc::Enum:
+			self.jmp.WriteStr("enum ")!
+			self.jmp.WriteStr(doc.Name)!
+		| doc::TypeEnum:
+			self.jmp.WriteStr("enum ")!
+			self.jmp.WriteStr(doc.Name)!
+			self.jmp.WriteStr(": type ")!
+		| doc::TypeAlias:
+			self.jmp.WriteStr(doc.Code)!
+		| doc::StrictTypeAlias:
+			self.jmp.WriteStr(doc.Code)!
+		}
+		self.jmp.WriteByte(']')!
+		// Write link.
+		self.jmp.WriteStr("(#")!
+		self.jmp.WriteStr(doc.Name)!
+		n, ok := self.jmpc[doc.Name]
+		self.jmpc[doc.Name] = n + 1
+		// If this content exist already, write count.
+		if ok && n > 0 {
+			self.jmp.WriteByte('-')!
+			self.jmp.WriteStr(conv::Itoa(n))!
+		}
+		self.jmp.WriteStr(")")!
+	}
+
+	fn vars(mut &self, doc: []&doc::Doc) {
+		mut header := false
+		for _, node in doc {
+			if node.Owner != doc::Var {
+				continue
+			}
+			if !header {
+				self.out.WriteStr("# Globals\n\n")!
+				header = true
+			} else {
+				self.out.WriteStr("\n\n")!
+			}
+			self.pushJmp(node, 0)
+			self.out.WriteStr("## ")!
+			self.out.WriteStr(node.Name)!
+			self.out.WriteStr("\n```jule\n")!
+			self.out.WriteStr(node.Code)!
+			self.out.WriteStr("\n```\n")!
+			self.gendoc(node)
+		}
+	}
+
+	fn funcs(mut &self, doc: []&doc::Doc) {
+		mut header := false
+		for _, node in doc {
+			if node.Owner != doc::Func {
+				continue
+			}
+			if !header {
+				self.out.WriteStr("# Functions\n\n")!
+				header = true
+			} else {
+				self.out.WriteStr("\n\n")!
+			}
+			self.pushJmp(node, 0)
+			self.out.WriteStr("## ")!
+			self.out.WriteStr(node.Name)!
+			self.out.WriteStr("\n```jule\n")!
+			self.out.WriteStr(node.Code)!
+			self.out.WriteStr("\n```\n")!
+			self.gendoc(node)
+		}
+	}
+
+	fn typeAliases(mut &self, doc: []&doc::Doc) {
+		mut header := false
+		for _, node in doc {
+			if node.Owner != doc::TypeAlias {
+				continue
+			}
+			if !header {
+				self.out.WriteStr("# Type Aliases\n\n")!
+				header = true
+			} else {
+				self.out.WriteStr("\n\n")!
+			}
+			self.pushJmp(node, 0)
+			self.out.WriteStr("## ")!
+			self.out.WriteStr(node.Name)!
+			self.out.WriteStr("\n```jule\n")!
+			self.out.WriteStr(node.Code)!
+			self.out.WriteStr("\n```\n")!
+			self.gendoc(node)
+		}
+	}
+
+	fn traits(mut &self, doc: []&doc::Doc) {
+		mut header := false
+		for _, node in doc {
+			if node.Owner != doc::Trait {
+				continue
+			}
+			if !header {
+				self.out.WriteStr("# Traits\n\n")!
+				header = true
+			} else {
+				self.out.WriteStr("\n\n")!
+			}
+			self.pushJmp(node, 0)
+			self.out.WriteStr("## ")!
+			self.out.WriteStr(node.Name)!
+			self.out.WriteStr("\n```jule\n")!
+			self.out.WriteStr(node.Code)!
+			self.out.WriteStr("\n```\n")!
+			self.gendoc(node)
+		}
+	}
+
+	fn methods(mut &self, doc: []&doc::Doc) {
+		mut header := new(bool)
+		iter := fn(_static: bool) {
+			for _, node in doc {
+				if _static != strings::HasPrefix(node.Code, "static ") {
+					continue
+				}
+				if !*header {
+					self.out.WriteStr("\n\n### Methods\n\n")!
+					*header = true
+				} else {
+					self.out.WriteStr("\n\n")!
+				}
+				self.pushJmp(node, 1)
+				self.out.WriteStr("#### ")!
+				self.out.WriteStr(node.Name)!
+				self.out.WriteStr("\n```jule\n")!
+				self.out.WriteStr(node.Code)!
+				self.out.WriteStr("\n```\n")!
+				self.gendoc(node)
+			}
+		}
+		iter(true)
+		iter(false)
+	}
+
+	fn implTraits(mut &self, traits: []str) {
+		if len(traits) == 0 {
+			ret
+		}
+		self.out.WriteStr("\n\n### Implemented Traits\n")!
+		for _, t in traits {
+			self.out.WriteStr("\n- `")!
+			self.out.WriteStr(t)!
+			self.out.WriteByte('`')!
+		}
+	}
+
+	fn handleStructMeta(mut &self, doc: &doc::Doc) {
+		if doc.Meta == nil {
+			ret
+		}
+		meta := (&doc::MetaStruct)(doc.Meta)
+		self.implTraits(meta.Traits)
+		self.methods(meta.Methods)
+	}
+
+	fn structs(mut &self, doc: []&doc::Doc) {
+		mut header := false
+		for _, node in doc {
+			if node.Owner != doc::Struct && node.Owner != doc::StrictTypeAlias {
+				continue
+			}
+			if !header {
+				self.out.WriteStr("# Structs\n\n")!
+				header = true
+			} else {
+				self.out.WriteStr("\n\n")!
+			}
+			self.pushJmp(node, 0)
+			self.out.WriteStr("## ")!
+			self.out.WriteStr(node.Name)!
+			self.out.WriteStr("\n```jule\n")!
+			self.out.WriteStr(node.Code)!
+			self.out.WriteStr("\n```\n")!
+			self.gendoc(node)
+			self.handleStructMeta(node)
+		}
+	}
+
+	fn enums(mut &self, doc: []&doc::Doc) {
+		mut header := false
+		for _, node in doc {
+			if node.Owner != doc::Enum && node.Owner != doc::TypeEnum {
+				continue
+			}
+			if !header {
+				self.out.WriteStr("# Enums\n\n")!
+				header = true
+			} else {
+				self.out.WriteStr("\n\n")!
+			}
+			self.pushJmp(node, 0)
+			self.out.WriteStr("## ")!
+			self.out.WriteStr(node.Name)!
+			self.out.WriteStr("\n```jule\n")!
+			self.out.WriteStr(node.Code)!
+			self.out.WriteStr("\n```\n")!
+			self.gendoc(node)
+		}
+	}
+
+	fn gen(mut &self, doc: []&doc::Doc): []byte {
+		mut n := self.out.Len()
+		self.typeAliases(doc)
+		if n != self.out.Len() {
+			self.out.WriteStr("\n\n")!
+		}
+		self.vars(doc)
+		if n != self.out.Len() {
+			self.out.WriteStr("\n\n")!
+		}
+		n = self.out.Len()
+		self.funcs(doc)
+		if n != self.out.Len() {
+			self.out.WriteStr("\n\n")!
+		}
+		n = self.out.Len()
+		self.traits(doc)
+		if n != self.out.Len() {
+			self.out.WriteStr("\n\n")!
+		}
+		n = self.out.Len()
+		self.structs(doc)
+		if n != self.out.Len() {
+			self.out.WriteStr("\n\n")!
+		}
+		n = self.out.Len()
+		self.enums(doc)
+		// If out have a content, add new-line to separate jump table.
+		if self.out.Len() > 0 {
+			self.jmp.WriteStr("\n\n")!
+		}
+		self.jmp.WriteStr(self.out.Str())!
+		ret unsafe { self.jmp.Buf() }
+	}
+}
+
+// Generates Markdown documentation from documentation data.
+fn Gen(doc: []&doc::Doc): []byte {
+	mut gen := new(gen)
+	gen.jmpc = {}
+	ret gen.gen(doc)
+}
