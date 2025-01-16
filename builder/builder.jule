@@ -1,0 +1,261 @@
+// Copyright 2025 The Jule Programming Language.
+// Use of this source code is governed by a BSD 3-Clause
+// license that can be found in the LICENSE file.
+
+use "doc"
+use "std/bytes"
+use "std/jule/ast"
+use "std/strings"
+use "std/unicode"
+use "std/unicode/utf8"
+
+struct metaHashStruct {
+	ident: str
+	meta:  &doc::MetaStruct
+}
+
+// Builds documentation from source code AST.
+struct Builder {
+	mut ast: &ast::AST
+	mut cm:  &CommentMap
+	mut fmt: &formatter
+
+	mut structMetas: []metaHashStruct
+}
+
+impl Builder {
+	// Formats node and returns formatted code (including documentation comments).
+	fn formatNode(self, mut node: ast::Node): str {
+		self.fmt.buf.Clear()
+		self.fmt.node(node)
+		ret strings::TrimSpace(self.fmt.buf.Str())
+	}
+
+	// Formats type and returns formatted code.
+	fn formatType(self, mut t: &ast::Type): str {
+		self.fmt.buf.Clear()
+		self.fmt.formatType(t)
+		ret strings::TrimSpace(self.fmt.buf.Str())
+	}
+
+	// Builds context from doc comments.
+	fn buildCtx(self, doc: str): []doc::Context {
+		ctxb := ctxBuilder{}
+		ret ctxb.build(doc)
+	}
+
+	// Reads documentation comments from code and returns meta.
+	// Also returns code with no documentation comments.
+	fn readDocComments(self, mut code: str): (str, []doc::Context) {
+		// Read doc comments.
+		mut doc := strings::Builder{}
+		for len(code) > 0 {
+			mut i := strings::IndexByte(code, '\n')
+			if i == -1 {
+				break
+			}
+			// Comments separated by empty new-line.
+			// Reset doc comments.
+			if i == 0 {
+				doc.Clear()
+				code = code[i+1:]
+				continue
+			}
+			i++
+			if i >= len(code) {
+				break
+			}
+			if len(code) >= 2 && code[:2] == "//" {
+				doc.WriteStr(code[:i])!
+			} else {
+				break
+			}
+			code = code[i:]
+		}
+		mut ctx := self.buildCtx(strings::TrimSpace(doc.Str()))
+		ret code, ctx
+	}
+
+	fn node(self, mut node: ast::Node): &doc::Doc {
+		mut doc := new(doc::Doc)
+		code, mut ctx := self.readDocComments(self.formatNode(node))
+		doc.Code = code
+		doc.Ctx = ctx
+		match type node.Data {
+		| &ast::Var:
+			// NOTE:
+			// We cannot know the exact type of the variable without semantic analysis.
+			// For this reason, we have to format variables with initialization expressions.
+			// The initialization expressions will be useful for that.
+			// But hidden types may be not useful, for example "[foo]".
+			// In the example expression, "foo" is a private value, so it is not documented.
+			// Reader cannot know the type of the "foo". The code writer should
+			// be consider cases like this and should write type declaration.
+			mut v := (&ast::Var)(node.Data)
+			if v.Binded {
+				ret nil
+			}
+			doc.Name = v.Ident
+			doc.Owner = doc::Var
+		| &ast::Func:
+			// NOTE:
+			// We do not have to check whether this function is a test function.
+			// According to Jule's test function rules, a test function never can be public.
+			// So we will not document test functions.
+			mut f := (&ast::Func)(node.Data)
+			if f.Binded {
+				ret nil
+			}
+			doc.Name = f.Ident
+			doc.Owner = doc::Func
+		| &ast::Struct:
+			mut s := (&ast::Struct)(node.Data)
+			if s.Binded {
+				ret nil
+			}
+			doc.Name = s.Ident
+			doc.Owner = doc::Struct
+		| &ast::Trait:
+			mut t := (&ast::Trait)(node.Data)
+			doc.Name = t.Ident
+			doc.Owner = doc::Trait
+		| &ast::Enum:
+			mut e := (&ast::Enum)(node.Data)
+			doc.Name = e.Ident
+			doc.Owner = doc::Enum
+		| &ast::TypeEnum:
+			mut e := (&ast::TypeEnum)(node.Data)
+			doc.Name = e.Ident
+			doc.Owner = doc::TypeEnum
+		| &ast::TypeAlias:
+			mut a := (&ast::TypeAlias)(node.Data)
+			if a.Binded {
+				ret nil
+			}
+			doc.Name = a.Ident
+			if a.Strict {
+				doc.Owner = doc::StrictTypeAlias
+			} else {
+				doc.Owner = doc::TypeAlias
+			}
+		}
+		ret doc
+	}
+
+	// Returns MetaStruct by ident.
+	// If not exist already, appends new MetaStruct by ident and returns it.
+	fn getStructMeta(self, ident: str): &doc::MetaStruct {
+		for (_, mut hash) in self.structMetas {
+			if hash.ident == ident {
+				ret hash.meta
+			}
+		}
+		mut meta := new(doc::MetaStruct)
+		self.structMetas = append(self.structMetas, metaHashStruct{
+			ident: ident,
+			meta: meta,
+		})
+		ret meta
+	}
+
+	fn analysisImpl(self, mut ast: &ast::Impl) {
+		// Destination type should be simple identifier type.
+		// Otherwise we have to assume this implementation is not suitable to analysis.
+		match type ast.Dest.Kind {
+		| &ast::IdentType:
+			break
+		|:
+			ret
+		}
+		dest := (&ast::IdentType)(ast.Dest.Kind)
+		// Destination is not public. Skip.
+		if !isPub(dest.Ident) {
+			ret
+		}
+		mut meta := self.getStructMeta(dest.Ident)
+		// If it is trait implementation, we have to check identifier type for
+		// the trait type declaration for implementation. If identifier type is
+		// not public, no need for documentation.
+		if ast.IsTraitImpl() {
+			match type ast.Base.Kind {
+			| &ast::IdentType:
+				if !isPub((&ast::IdentType)(ast.Base.Kind).Ident) {
+					ret
+				}
+			}
+			meta.Traits = append(meta.Traits, self.formatType(ast.Base))
+		}
+		for (_, mut m) in ast.Methods {
+			mut node := ast::Node{
+				Token: m.Token,
+				Data: m,
+			}
+			meta.Methods = append(meta.Methods, self.node(node))
+		}
+	}
+
+	// Dispatches all collected struct meta.
+	fn dispatchStructMeta(self, mut doc: []&doc::Doc) {
+		for (_, mut hash) in self.structMetas {
+			for (_, mut node) in doc {
+				if (node.Owner == doc::Struct || node.Owner == doc::StrictTypeAlias) &&
+					node.Name == hash.ident {
+					node.Meta = hash.meta
+				}
+			}
+		}
+	}
+
+	// Dispatches all collected meta.
+	fn dispatchMeta(self, mut doc: []&doc::Doc) {
+		self.dispatchStructMeta(doc)
+	}
+
+	// Builds and returns documentation.
+	fn Build(self): []&doc::Doc {
+		mut doc := make([]&doc::Doc, 0)
+		for (_, mut node) in self.ast.Nodes {
+			match type node.Data {
+			| &ast::Impl:
+				self.analysisImpl((&ast::Impl)(node.Data))
+				continue
+			}
+			mut nodeDoc := self.node(node)
+			if nodeDoc == nil {
+				continue
+			}
+			// Do not add exported defines.
+			if !isPub(nodeDoc.Name) {
+				continue
+			}
+			doc = append(doc, nodeDoc)
+		}
+		self.dispatchMeta(doc)
+		ret doc
+	}
+}
+
+// Returns new Builder by AST and CommentMap.
+fn New(mut ast: &ast::AST, mut cm: &CommentMap): &Builder {
+	mut b := &Builder{
+		ast: ast,
+		cm: cm,
+		fmt: formatter.new(),
+	}
+	b.fmt.cm = cm
+	ret b
+}
+
+// Reports whether identifier is public.
+// Derived from julec. Stay up to date.
+fn isPub(ident: str): bool {
+	if len(ident) == 0 {
+		ret false
+	}
+	if ident[0] < utf8::RuneSelf { // ASCII, fast way.
+		b := ident[0]
+		ret 'A' <= b && b <= 'Z'
+	}
+	r, _ := utf8::DecodeRuneStr(ident)
+	ret unicode::IsUpper(r)
+}

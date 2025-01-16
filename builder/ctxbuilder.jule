@@ -1,0 +1,141 @@
+// Copyright 2025 The Jule Programming Language.
+// Use of this source code is governed by a BSD 3-Clause
+// license that can be found in the LICENSE file.
+
+use "doc"
+use "std/strings"
+use "std/unicode"
+
+struct ctxBuilder {
+	mut lines:  []str
+	mut i:      int
+	mut indent: int
+}
+
+impl ctxBuilder {
+	fn text(self): doc::Text {
+		mut txt := strings::Builder{}
+		mut line, indent := handleDocLine(self.lines[self.i])
+		txt.WriteStr(line)!
+		self.i++ // Skip current line.
+		for self.i < len(self.lines); self.i++ {
+			newLine, newIndent := handleDocLine(self.lines[self.i])
+			// Separator.
+			if len(newLine) == 0 {
+				break
+			}
+			// Indentation is not compatible.
+			if indent != newIndent {
+				break
+			}
+			// Concat lines if indent is zero,
+			// otherwise split lines into other doc::Text instances.
+			if indent == 0 {
+				// Line is list. Do not append, break.
+				if newLine[0] == '-' {
+					break
+				}
+				txt.WriteByte(' ')!
+				txt.WriteStr(newLine)!
+				continue
+			}
+			break
+		}
+		ret doc::Text(txt.Str())
+	}
+
+	fn next(self): doc::Context {
+		mut ctx := doc::Context{}
+		mut line := self.lines[self.i]
+		line, ctx.Indent = handleDocLine(line)
+		if len(line) == 0 {
+			ctx.Node = doc::Separator(true)
+			self.i++
+		} else if line[0] == '-' {
+			// Use text like ListItem.
+			// Logic is same, so just cast the type.
+			mut txt := self.text()
+			// Trim line mark.
+			txt = doc::Text(strings::TrimSpace(str(txt[1:])))
+			ctx.Node = doc::ListItem(txt)
+		} else {
+			ctx.Node = self.text()
+		}
+		ret ctx
+	}
+
+	// Removes leading and trailing separator lines.
+	fn simplifyLines(self) {
+		if len(self.lines) == 0 {
+			ret
+		}
+		mut i := 0
+		for i < len(self.lines); i++ {
+			line, _ := handleDocLine(self.lines[i])
+			if len(line) == 0 {
+				continue
+			}
+			break
+		}
+		self.lines = self.lines[i:]
+		if len(self.lines) == 0 {
+			ret
+		}
+		i = len(self.lines) - 1
+		for ; i-- {
+			line, _ := handleDocLine(self.lines[i])
+			if len(line) == 0 {
+				continue
+			}
+			break
+		}
+		self.lines = self.lines[:i+1]
+	}
+
+	// Builds context from doc comments.
+	fn build(self, doc: str): []doc::Context {
+		mut ctx := make([]doc::Context, 0)
+		self.i = 0
+		self.lines = strings::Split(doc, "\n")
+		self.simplifyLines()
+		mut sep := false // Previous iteration step added a separator.
+		for self.i < len(self.lines) {
+			lineCtx := self.next()
+			match type lineCtx.Node {
+			| doc::Separator:
+				// Do not add duplicated seperators.
+				if sep {
+					continue
+				}
+				sep = true
+			|:
+				sep = false
+			}
+			ctx = append(ctx, lineCtx)
+		}
+		ret ctx
+	}
+}
+
+// Removes leading spaces from doc comment and
+// returns with indentation level of line.
+fn handleDocLine(mut line: str): (rest: str, indent: int) {
+	if len(line) == 0 {
+		ret "", 0
+	}
+	line = line[2:] // Remove comment prefix.
+	if len(line) == 0 {
+		ret line, 0
+	}
+	if line[0] == ' ' {
+		line = line[1:]
+	}
+	for _, r in []rune(line) {
+		if unicode::IsSpace(r) {
+			indent++
+			continue
+		}
+		break
+	}
+	ret line[indent:], indent
+}

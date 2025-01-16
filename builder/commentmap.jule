@@ -1,0 +1,79 @@
+// Copyright 2025 The Jule Programming Language.
+// Use of this source code is governed by a BSD 3-Clause
+// license that can be found in the LICENSE file.
+
+use "std/jule/token"
+
+struct comment {
+	row: int
+	col: int
+	txt: str
+}
+
+// Map for comments.
+struct CommentMap {
+	buf: []&comment
+}
+
+impl CommentMap {
+	fn first(mut self, row: int): &comment {
+		if len(self.buf) == 0 {
+			ret nil
+		}
+		mut c := self.buf[0]
+		if row != -1 && c.row > row {
+			ret nil
+		}
+		ret c
+	}
+
+	fn dropFirst(mut self) {
+		self.buf = self.buf[1:]
+	}
+
+	fn pop(mut self, row: int): &comment {
+		if len(self.buf) == 0 {
+			ret nil
+		}
+		mut c := self.buf[0]
+		if c.row > row {
+			ret nil
+		}
+		self.dropFirst()
+		ret c
+	}
+
+	fn find(mut self, row: int): &comment {
+		if len(self.buf) == 0 {
+			ret nil
+		}
+		mut c := self.buf[0]
+		if c.row > row {
+			ret nil
+		}
+		ret c
+	}
+}
+
+// Builds CommentMap from source code tokens.
+fn BuildCommentMap(mut &tokens: []&token::Token): &CommentMap {
+	mut cm := &CommentMap{
+		buf: make([]&comment, 0, 1<<8),
+	}
+	mut i := 0
+	for i < len(tokens) {
+		token := tokens[i]
+		if token.Id != token::Id.Comment {
+			i++
+			continue
+		}
+		cm.buf = append(cm.buf, &comment{
+			row: token.Row,
+			col: token.Column,
+			txt: token.Kind,
+		})
+		_ = copy(tokens[i:], tokens[i+1:])
+		tokens = tokens[:len(tokens)-1]
+	}
+	ret cm
+}
