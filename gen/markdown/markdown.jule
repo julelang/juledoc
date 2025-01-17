@@ -26,6 +26,11 @@ static markdownEscaper = strings::Replacer.New(
 	"_", "\\_",
 	"*", "\\*")
 
+// Replaces special characters for identifiers.
+// If a name will used for a hyperlink in the page, this replacer should be used.
+static idEscaper = strings::Replacer.New(
+	"_", "-")
+
 // Generates Markdown documentation from documentation data.
 struct gen {
 	jmp:  strings::Builder // Jump table (aka contents list).
@@ -166,7 +171,7 @@ impl gen {
 		self.jmp.WriteByte(']')!
 		// Write link.
 		self.jmp.WriteStr("(#")!
-		self.jmp.WriteStr(strings::ToLower(doc.Name))!
+		self.jmp.WriteStr(idEscaper.Replace(strings::ToLower(doc.Name)))!
 		n, ok := self.jmpc[doc.Name]
 		self.jmpc[doc.Name] = n + 1
 		// If this content exist already, write count.
