@@ -75,7 +75,7 @@ impl gen {
 					self.out.WriteStr("```\n")!
 				} else if *group != 0 {
 					self.out.WriteStr("\n")!
-					self.out.WriteStr(strings::Repeat("  ", ctx.Indent-*group))!
+					self.out.WriteStr(strings::Repeat("\t", ctx.Indent-*group))!
 				}
 				txt := doc::Text(ctx.Node)
 				writeDocText(str(txt))
@@ -89,7 +89,7 @@ impl gen {
 					}
 				} else if *group != 0 {
 					self.out.WriteStr("\n")!
-					self.out.WriteStr(strings::Repeat("  ", ctx.Indent-*group))!
+					self.out.WriteStr(strings::Repeat("\t", ctx.Indent-*group))!
 				}
 				self.out.WriteStr("- ")!
 				txt := doc::ListItem(ctx.Node)
