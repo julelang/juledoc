@@ -47,12 +47,11 @@ impl gen {
 			match type ctx.Node {
 			| doc::Separator:
 				if *group != 0 {
-					self.out.WriteStr("\n```\n")!
-					*group = 0
+					self.out.WriteStr("\n")!
 				} else {
 					self.out.WriteStr("\n\n")!
+					indent = 0
 				}
-				indent = 0
 				lastIsListItem = false
 				lastIsSeparator = true
 				continue
@@ -74,8 +73,15 @@ impl gen {
 					*group = ctx.Indent
 					self.out.WriteStr("```\n")!
 				} else if *group != 0 {
-					self.out.WriteStr("\n")!
-					self.out.WriteStr(strings::Repeat("\t", ctx.Indent-*group))!
+					// Indentation is lower than group indentation.
+					// This is end fo the group.
+					if *group > ctx.Indent {
+						self.out.WriteStr("\n```\n")!
+						*group = 0
+					} else {
+						self.out.WriteStr("\n")!
+						self.out.WriteStr(strings::Repeat("\t", ctx.Indent-*group))!
+					}
 				}
 				txt := doc::Text(ctx.Node)
 				writeDocText(str(txt))
@@ -88,8 +94,15 @@ impl gen {
 						self.out.WriteStr("<br>\n\n")!
 					}
 				} else if *group != 0 {
-					self.out.WriteStr("\n")!
-					self.out.WriteStr(strings::Repeat("\t", ctx.Indent-*group))!
+					// Indentation is lower than group indentation.
+					// This is end fo the group.
+					if *group > ctx.Indent {
+						self.out.WriteStr("\n```\n")!
+						*group = 0
+					} else {
+						self.out.WriteStr("\n")!
+						self.out.WriteStr(strings::Repeat("\t", ctx.Indent-*group))!
+					}
 				}
 				self.out.WriteStr("- ")!
 				txt := doc::ListItem(ctx.Node)
