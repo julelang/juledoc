@@ -6,6 +6,7 @@ use "builder"
 use "doc"
 use "gen/markdown"
 use "std/jule"
+use "std/jule/ast"
 use "std/jule/build"
 use "std/jule/parser"
 use "std/jule/token"
@@ -97,6 +98,15 @@ fn isPassFileAnnotation(mut p: str): bool {
 	ret !checkOs(a1)
 }
 
+fn containsBuildDirective(ast: &ast::AST): bool {
+	for _, d in ast.TopDirectives {
+		if d.Tag.Kind == build::Directive.Build {
+			ret true
+		}
+	}
+	ret false
+}
+
 // Generates documentation data with path, and returns result.
 // If result is nil, we have an error(s).
 fn doc(path: str, mut data: []byte): []&doc::Doc {
@@ -112,6 +122,9 @@ fn doc(path: str, mut data: []byte): []&doc::Doc {
 	mut finfo := parser::ParseFile(file)
 	if len(finfo.Errors) > 0 {
 		writeError("error: file could not formatted, have error(s): " + path)
+		ret nil
+	}
+	if containsBuildDirective(finfo.AST) {
 		ret nil
 	}
 
