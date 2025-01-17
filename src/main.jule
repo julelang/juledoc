@@ -6,6 +6,7 @@ use "builder"
 use "doc"
 use "gen/markdown"
 use "std/jule"
+use "std/jule/build"
 use "std/jule/parser"
 use "std/jule/token"
 use "std/os"
@@ -15,6 +16,85 @@ use "std/strings"
 fn writeError(message: str) {
 	os::Stderr().WriteStr(message)!
 	os::Stderr().WriteByte('\n')!
+}
+
+// Derived from the "std/jule/importer", stay up to date.
+// Reports whether the arg is exist is distos.
+fn checkOs(arg: str): (exist: bool) {
+	ret arg == build::DistOS.Windows ||
+		arg == build::DistOS.Darwin ||
+		arg == build::DistOS.Linux ||
+		arg == build::DistOS.Unix
+}
+
+// Derived from the "std/jule/importer", stay up to date.
+// Reports whether the arg is exist is distarch.
+fn checkArch(arg: str): (exist: bool) {
+	ret arg == build::DistArch.I386 ||
+		arg == build::DistArch.Amd64 ||
+		arg == build::DistArch.Arm64 ||
+		arg == build::DistArch.X64 ||
+		arg == build::DistArch.X32
+}
+
+// Derived from the "std/jule/importer", stay up to date.
+// Reports whether path is not including any annotation.
+fn isPassFileAnnotation(mut p: str): bool {
+	p = filepath::Base(p)
+	n := len(p)
+	p = p[:n-len(filepath::Ext(p))]
+
+	if strings::HasSuffix(p, "_test") {
+		ret false
+	}
+
+	// a1 is the second annotation.
+	// Should be architecture annotation if exist annotation 2 (aka a2),
+	// can operating system or architecture annotation if not.
+	mut a1 := ""
+	// a2 is first filter.
+	// Should be operating system filter if exist and valid annotation.
+	mut a2 := ""
+
+	// Annotation 1
+	mut i := strings::LastIndexByte(p, '_')
+	if i == -1 {
+		// Check file name directly if not exist any _ character.
+		exist := checkOs(p)
+		if exist {
+			ret false
+		}
+		ret !checkArch(p)
+	}
+	if i+1 >= n {
+		ret true
+	}
+	a1 = p[i+1:]
+
+	p = p[:i]
+
+	// Annotation 2
+	i = strings::LastIndexByte(p, '_')
+	if i != -1 {
+		a2 = p[i+1:]
+	}
+
+	if a2 == "" {
+		exist := checkOs(a1)
+		if exist {
+			ret false
+		}
+		ret !checkArch(a1)
+	}
+
+	exist := checkArch(a1)
+	if exist {
+		ret false
+	}
+
+	// a1 is not architecture, for this reason bad couple pattern.
+	// Accept as one pattern, so a1 can be platform.
+	ret !checkOs(a1)
 }
 
 // Generates documentation data with path, and returns result.
@@ -55,6 +135,10 @@ fn saveFile(path: str, ctx: []byte) {
 }
 
 fn docFile(path: str) {
+	if !isPassFileAnnotation(path) {
+		writeError("error: no symbol to document: " + path)
+		ret
+	}
 	mut doc := doc(path, os::File.Read(path) else {
 		writeError("error: file could not read: " + path)
 		ret
@@ -72,8 +156,10 @@ fn docPackage(path: str) {
 	}
 	mut alldoc := ([]&doc::Doc)(nil)
 	for _, dirent in dirents {
-		// Skip directories, and non-jule files.
-		if dirent.Stat.IsDir() || !strings::HasSuffix(dirent.Name, jule::Ext) {
+		// Skip directories, non-jule files, and files with annotation.
+		if dirent.Stat.IsDir() ||
+			!strings::HasSuffix(dirent.Name, jule::Ext) ||
+			!isPassFileAnnotation(dirent.Name) {
 			continue
 		}
 		filepath := filepath::Join(path, dirent.Name)
