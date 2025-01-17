@@ -497,17 +497,23 @@ impl formatter {
 				token: f.Token,
 			})
 		}
+		mut hidden := false
 		mut i := 0
 		for i < len(flds) {
 			old := i
-			self.fieldGroupDecls(flds, i)
+			wr := self.fieldGroupDecls(flds, i)
+			hidden = hidden || !wr
 			if old != i {
-				if i < len(flds) {
+				if wr && i < len(flds) {
 					self.write("\n")
 				}
 			} else {
 				i++
 			}
+		}
+		if hidden {
+			self.buf.Write(self.indent)!
+			self.write("// NOTE: contains filtered hidden or unexported fields\n")
 		}
 	}
 
@@ -663,7 +669,8 @@ impl formatter {
 		ret
 	}
 
-	fn fieldGroupDecls(&self, mut fields: []&field, mut &i: int) {
+	// Reports whether any field is actually written.
+	fn fieldGroupDecls(&self, mut fields: []&field, mut &i: int): (wr: bool) {
 		const Cap = 1 << 4
 		mut lines := make([][]byte, 0, Cap)
 		mut rows := make([]int, 0, Cap)
@@ -711,6 +718,7 @@ impl formatter {
 			isPub := isPub(fields[start+k].f.Ident) // Ignore private fields.
 			self.writeCommentsExcept(row, isPub)
 			if isPub {
+				wr = true
 				self.buf.Write(line)!
 			}
 			// Handle comments if same-line condition is not appear or
@@ -732,6 +740,8 @@ impl formatter {
 				self.write("\n")
 			}
 		}
+
+		ret
 	}
 
 	fn groupDecls[T, Node](&self, mut nodes: []Node, mut &i: int, writer: fn(mut &d: T)) {
