@@ -18,7 +18,9 @@ static markdownEscaper = strings::Replacer.New(
 	`<`, "&lt;",
 	`>`, "&gt;",
 	`"`, "&#34;",
-	"`", "\\`")
+	"`", "\\`",
+	"[", "\\[",
+	"]", "\\]")
 
 // Generates Markdown documentation from documentation data.
 struct gen {
