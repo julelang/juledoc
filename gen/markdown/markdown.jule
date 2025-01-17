@@ -136,28 +136,28 @@ impl gen {
 		match doc.Owner {
 		| doc::Var:
 			i := strings::IndexAny(doc.Code, ":=")
-			self.jmp.WriteStr(doc.Code[:i])!
+			self.jmp.WriteStr(markdownEscaper.Replace(doc.Code[:i]))!
 		| doc::Func:
-			self.jmp.WriteStr(doc.Code)!
+			self.jmp.WriteStr(markdownEscaper.Replace(doc.Code))!
 		| doc::Struct:
 			self.jmp.WriteStr("struct ")!
-			self.jmp.WriteStr(doc.Name)!
+			self.jmp.WriteStr(markdownEscaper.Replace(doc.Name))!
 		| doc::Trait:
 			self.jmp.WriteStr("trait ")!
-			self.jmp.WriteStr(doc.Name)!
+			self.jmp.WriteStr(markdownEscaper.Replace(doc.Name))!
 		| doc::Enum:
 			self.jmp.WriteStr("enum ")!
-			self.jmp.WriteStr(doc.Name)!
+			self.jmp.WriteStr(markdownEscaper.Replace(doc.Name))!
 		| doc::TypeEnum:
 			self.jmp.WriteStr("enum ")!
-			self.jmp.WriteStr(doc.Name)!
+			self.jmp.WriteStr(markdownEscaper.Replace(doc.Name))!
 			self.jmp.WriteStr(": type ")!
 		| doc::TypeAlias:
 			i := strings::IndexByte(doc.Code, '=')
-			self.jmp.WriteStr(strings::TrimSpace(doc.Code[:i]))!
+			self.jmp.WriteStr(markdownEscaper.Replace(strings::TrimSpace(doc.Code[:i])))!
 		| doc::StrictTypeAlias:
 			i := strings::IndexByte(doc.Code, ':')
-			self.jmp.WriteStr(strings::TrimSpace(doc.Code[:i]))!
+			self.jmp.WriteStr(markdownEscaper.Replace(strings::TrimSpace(doc.Code[:i])))!
 		}
 		self.jmp.WriteByte(']')!
 		// Write link.
