@@ -137,9 +137,11 @@ impl gen {
 			self.jmp.WriteStr(doc.Name)!
 			self.jmp.WriteStr(": type ")!
 		| doc::TypeAlias:
-			self.jmp.WriteStr(doc.Code)!
+			i := strings::IndexByte(doc.Code, '=')
+			self.jmp.WriteStr(strings::TrimSpace(doc.Code[:i]))!
 		| doc::StrictTypeAlias:
-			self.jmp.WriteStr(doc.Code)!
+			i := strings::IndexByte(doc.Code, ':')
+			self.jmp.WriteStr(strings::TrimSpace(doc.Code[:i]))!
 		}
 		self.jmp.WriteByte(']')!
 		// Write link.
