@@ -16,8 +16,6 @@ struct metaHashStruct {
 
 // Builds documentation from source code AST.
 struct Builder {
-	mut ast: &ast::AST
-	mut cm:  &CommentMap
 	mut fmt: &formatter
 
 	mut structMetas: []metaHashStruct
@@ -218,14 +216,16 @@ impl Builder {
 	}
 
 	// Dispatches all collected meta.
-	fn dispatchMeta(self, mut doc: []&doc::Doc) {
+	fn DispatchMeta(self, mut doc: []&doc::Doc) {
 		self.dispatchStructMeta(doc)
 	}
 
 	// Builds and returns documentation.
-	fn Build(self): []&doc::Doc {
+	// Will not dispatch meta.
+	fn BuildPartial(self, mut ast: &ast::AST, mut cm: &CommentMap): []&doc::Doc {
+		self.fmt.cm = cm
 		mut doc := make([]&doc::Doc, 0)
-		for (_, mut node) in self.ast.Nodes {
+		for (_, mut node) in ast.Nodes {
 			match type node.Data {
 			| &ast::Impl:
 				self.analysisImpl((&ast::Impl)(node.Data))
@@ -241,20 +241,22 @@ impl Builder {
 			}
 			doc = append(doc, nodeDoc)
 		}
-		self.dispatchMeta(doc)
+		ret doc
+	}
+
+	// Builds and returns documentation with dispatched meta.
+	fn Build(self, mut ast: &ast::AST, mut cm: &CommentMap): []&doc::Doc {
+		mut doc := self.BuildPartial(ast, cm)
+		self.DispatchMeta(doc)
 		ret doc
 	}
 }
 
-// Returns new Builder by AST and CommentMap.
-fn New(mut ast: &ast::AST, mut cm: &CommentMap): &Builder {
-	mut b := &Builder{
-		ast: ast,
-		cm: cm,
+// Returns new Builder.
+fn New(): &Builder {
+	ret &Builder{
 		fmt: formatter.new(),
 	}
-	b.fmt.cm = cm
-	ret b
 }
 
 // Reports whether identifier is public.

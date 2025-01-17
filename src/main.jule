@@ -107,29 +107,25 @@ fn containsBuildDirective(ast: &ast::AST): bool {
 	ret false
 }
 
-// Generates documentation data with path, and returns result.
-// If result is nil, we have an error(s).
-fn doc(path: str, mut data: []byte): []&doc::Doc {
+fn getAST(path: str, mut data: []byte): (&ast::AST, &builder::CommentMap) {
 	mut file := token::Fileset.New(path)
 	unsafe { file.FillMut(data) }
 	mut errors := token::Lex(file, token::LexMode.Comment)
 	if len(errors) > 0 {
 		writeError("error: file could not formatted, have error(s): " + path)
-		ret nil
+		ret nil, nil
 	}
 
 	mut cm := builder::BuildCommentMap(file.Tokens)
 	mut finfo := parser::ParseFile(file)
 	if len(finfo.Errors) > 0 {
 		writeError("error: file could not formatted, have error(s): " + path)
-		ret nil
+		ret nil, nil
 	}
 	if containsBuildDirective(finfo.AST) {
-		ret nil
+		ret nil, nil
 	}
-
-	builder := builder::New(finfo.AST, cm)
-	ret builder.Build()
+	ret finfo.AST, cm
 }
 
 fn docdoc(mut doc: []&doc::Doc): []byte {
@@ -152,10 +148,11 @@ fn docFile(path: str) {
 		writeError("error: no symbol to document: " + path)
 		ret
 	}
-	mut doc := doc(path, os::File.Read(path) else {
+	mut ast, mut cm := getAST(path, os::File.Read(path) else {
 		writeError("error: file could not read: " + path)
 		ret
 	})
+	mut doc := builder::New().Build(ast, cm)
 	bytes := docdoc(doc)
 	if bytes == nil {
 		writeError("error: no symbol to document: " + path)
@@ -167,6 +164,11 @@ fn docPackage(path: str) {
 		writeError("error: connot read package directory: " + path)
 		ret
 	}
+	// Use general builder to handle all package files with common meta.
+	// Build partially ASTs and then dispatch all common meta for the whole package.
+	// This is important because methods may be defined in different files,
+	// we have to caught all of them.
+	builder := builder::New()
 	mut alldoc := ([]&doc::Doc)(nil)
 	for _, dirent in dirents {
 		// Skip directories, non-jule files, and files with annotation.
@@ -176,12 +178,16 @@ fn docPackage(path: str) {
 			continue
 		}
 		filepath := filepath::Join(path, dirent.Name)
-		mut doc := doc(filepath, os::File.Read(filepath) else {
+		mut ast, mut cm := getAST(filepath, os::File.Read(filepath) else {
 			writeError("error: file could not read: " + filepath)
 			ret
 		})
-		alldoc = append(alldoc, doc...)
+		mut doc := builder.BuildPartial(ast, cm)
+		if doc != nil {
+			alldoc = append(alldoc, doc...)
+		}
 	}
+	builder.DispatchMeta(alldoc)
 	bytes := docdoc(alldoc)
 	if bytes == nil {
 		writeError("error: no symbol to document: " + path)
