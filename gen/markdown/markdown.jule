@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 use "doc"
+use "std/bytes"
 use "std/conv"
 use "std/strings"
 
@@ -385,5 +386,5 @@ impl gen {
 fn Gen(doc: []&doc::Doc): []byte {
 	mut gen := new(gen)
 	gen.jmpc = {}
-	ret gen.gen(doc)
+	ret bytes::TrimSpace(gen.gen(doc))
 }
