@@ -220,25 +220,19 @@ impl gen {
 			}
 			self.out.WriteStr("\n```jule\n")!
 			self.out.WriteStr(node.Code)!
-			self.out.WriteStr("\n```\n")!
+			self.out.WriteStr("\n```")!
 			self.gendoc(node)
 		}
 	}
 
 	fn funcs(mut &self, doc: []&doc::Doc) {
-		mut header := false
 		for _, node in doc {
 			if node.Owner != doc::Func {
 				continue
 			}
-			if !header {
-				self.out.WriteStr("## Functions\n\n")!
-				header = true
-			} else {
-				self.out.WriteStr("\n\n")!
-			}
+			self.out.WriteStr("\n\n")!
 			self.pushJmp(node, 0)
-			self.out.WriteStr("### ")!
+			self.out.WriteStr("## ")!
 			self.out.WriteStr(node.Name)!
 			self.out.WriteStr("\n```jule\n")!
 			self.out.WriteStr(node.Code)!
@@ -248,19 +242,13 @@ impl gen {
 	}
 
 	fn typeAliases(mut &self, doc: []&doc::Doc) {
-		mut header := false
 		for _, node in doc {
 			if node.Owner != doc::TypeAlias {
 				continue
 			}
-			if !header {
-				self.out.WriteStr("## Type Aliases\n\n")!
-				header = true
-			} else {
-				self.out.WriteStr("\n\n")!
-			}
+			self.out.WriteStr("\n\n")!
 			self.pushJmp(node, 0)
-			self.out.WriteStr("### ")!
+			self.out.WriteStr("## ")!
 			self.out.WriteStr(node.Name)!
 			self.out.WriteStr("\n```jule\n")!
 			self.out.WriteStr(node.Code)!
@@ -270,19 +258,13 @@ impl gen {
 	}
 
 	fn traits(mut &self, doc: []&doc::Doc) {
-		mut header := false
 		for _, node in doc {
 			if node.Owner != doc::Trait {
 				continue
 			}
-			if !header {
-				self.out.WriteStr("## Traits\n\n")!
-				header = true
-			} else {
-				self.out.WriteStr("\n\n")!
-			}
+			self.out.WriteStr("\n\n")!
 			self.pushJmp(node, 0)
-			self.out.WriteStr("### ")!
+			self.out.WriteStr("## ")!
 			self.out.WriteStr(node.Name)!
 			self.out.WriteStr("\n```jule\n")!
 			self.out.WriteStr(node.Code)!
@@ -299,7 +281,7 @@ impl gen {
 				}
 				self.out.WriteStr("\n\n")!
 				self.pushJmp(node, 1)
-				self.out.WriteStr("#### ")!
+				self.out.WriteStr("### ")!
 				self.out.WriteStr(node.Name)!
 				self.out.WriteStr("\n```jule\n")!
 				self.out.WriteStr(node.Code)!
@@ -315,7 +297,7 @@ impl gen {
 		if len(traits) == 0 {
 			ret
 		}
-		self.out.WriteStr("\n\n#### Implemented Traits\n")!
+		self.out.WriteStr("\n\n### Implemented Traits\n")!
 		for _, t in traits {
 			self.out.WriteStr("\n- `")!
 			self.out.WriteStr(t)!
@@ -333,19 +315,13 @@ impl gen {
 	}
 
 	fn structs(mut &self, doc: []&doc::Doc) {
-		mut header := false
 		for _, node in doc {
 			if node.Owner != doc::Struct && node.Owner != doc::StrictTypeAlias {
 				continue
 			}
-			if !header {
-				self.out.WriteStr("## Structs\n\n")!
-				header = true
-			} else {
-				self.out.WriteStr("\n\n")!
-			}
+			self.out.WriteStr("\n\n")!
 			self.pushJmp(node, 0)
-			self.out.WriteStr("### ")!
+			self.out.WriteStr("## ")!
 			self.out.WriteStr(node.Name)!
 			self.out.WriteStr("\n```jule\n")!
 			self.out.WriteStr(node.Code)!
@@ -356,19 +332,13 @@ impl gen {
 	}
 
 	fn enums(mut &self, doc: []&doc::Doc) {
-		mut header := false
 		for _, node in doc {
 			if node.Owner != doc::Enum && node.Owner != doc::TypeEnum {
 				continue
 			}
-			if !header {
-				self.out.WriteStr("## Enums\n\n")!
-				header = true
-			} else {
-				self.out.WriteStr("\n\n")!
-			}
+			self.out.WriteStr("\n\n")!
 			self.pushJmp(node, 0)
-			self.out.WriteStr("### ")!
+			self.out.WriteStr("## ")!
 			self.out.WriteStr(node.Name)!
 			self.out.WriteStr("\n```jule\n")!
 			self.out.WriteStr(node.Code)!
@@ -378,31 +348,11 @@ impl gen {
 	}
 
 	fn gen(mut &self, mut doc: []&doc::Doc): []byte {
-		mut n := self.out.Len()
 		self.typeAliases(doc)
-		if n != self.out.Len() {
-			self.out.WriteStr("\n\n")!
-		}
 		self.vars(doc)
-		if n != self.out.Len() {
-			self.out.WriteStr("\n\n")!
-		}
-		n = self.out.Len()
 		self.funcs(doc)
-		if n != self.out.Len() {
-			self.out.WriteStr("\n\n")!
-		}
-		n = self.out.Len()
 		self.traits(doc)
-		if n != self.out.Len() {
-			self.out.WriteStr("\n\n")!
-		}
-		n = self.out.Len()
 		self.structs(doc)
-		if n != self.out.Len() {
-			self.out.WriteStr("\n\n")!
-		}
-		n = self.out.Len()
 		self.enums(doc)
 		// If out have a content, add new-line to separate jump table.
 		if self.out.Len() > 0 {
