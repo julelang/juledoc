@@ -1585,24 +1585,8 @@ fn isRanged(&e: &ast::Expr): bool {
 	ret false
 }
 
-fn isEmptyImpl(&imp: &ast::Impl): bool {
-	ret len(imp.Methods) == 0 && len(imp.Statics) == 0
-}
-
 fn cloneBuf(b: []byte): []byte {
 	mut rb := make([]byte, len(b))
 	copy(rb, b)
 	ret rb
-}
-
-fn isGroupStmt(stmt: ast::Stmt): bool {
-	match type stmt.Data {
-	| &ast::TypeAlias
-	| &ast::Var
-	| &ast::Assign
-	| &ast::Expr:
-		ret true
-	|:
-		ret false
-	}
 }

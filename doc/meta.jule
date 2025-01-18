@@ -10,6 +10,5 @@ enum Meta: type {
 // Metadata for struct.
 struct MetaStruct {
 	Traits:  []str
-	Statics: []&Doc
 	Methods: []&Doc
 }
