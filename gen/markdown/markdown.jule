@@ -143,31 +143,35 @@ impl gen {
 		self.jmp.WriteStr(strings::Repeat(space, spacePerIndent*indent))!
 		// Write context from code.
 		self.jmp.WriteByte('[')!
-		match doc.Owner {
-		| doc::Var:
-			i := strings::IndexAny(doc.Code, ":=")
-			self.jmp.WriteStr(markdownEscaper.Replace(doc.Code[:i]))!
-		| doc::Func:
-			self.jmp.WriteStr(markdownEscaper.Replace(doc.Code))!
-		| doc::Struct:
-			self.jmp.WriteStr("struct ")!
-			self.jmp.WriteStr(markdownEscaper.Replace(doc.Name))!
-		| doc::Trait:
-			self.jmp.WriteStr("trait ")!
-			self.jmp.WriteStr(markdownEscaper.Replace(doc.Name))!
-		| doc::Enum:
-			self.jmp.WriteStr("enum ")!
-			self.jmp.WriteStr(markdownEscaper.Replace(doc.Name))!
-		| doc::TypeEnum:
-			self.jmp.WriteStr("enum ")!
-			self.jmp.WriteStr(markdownEscaper.Replace(doc.Name))!
-			self.jmp.WriteStr(": type ")!
-		| doc::TypeAlias:
-			i := strings::IndexByte(doc.Code, '=')
-			self.jmp.WriteStr(markdownEscaper.Replace(strings::TrimSpace(doc.Code[:i])))!
-		| doc::StrictTypeAlias:
-			i := strings::IndexByte(doc.Code, ':')
-			self.jmp.WriteStr(markdownEscaper.Replace(strings::TrimSpace(doc.Code[:i])))!
+		if doc.Code == "" {
+			self.jmp.WriteStr(doc.Name)!
+		} else {
+			match doc.Owner {
+			| doc::Var:
+				i := strings::IndexAny(doc.Code, ":=")
+				self.jmp.WriteStr(markdownEscaper.Replace(doc.Code[:i]))!
+			| doc::Func:
+				self.jmp.WriteStr(markdownEscaper.Replace(doc.Code))!
+			| doc::Struct:
+				self.jmp.WriteStr("struct ")!
+				self.jmp.WriteStr(markdownEscaper.Replace(doc.Name))!
+			| doc::Trait:
+				self.jmp.WriteStr("trait ")!
+				self.jmp.WriteStr(markdownEscaper.Replace(doc.Name))!
+			| doc::Enum:
+				self.jmp.WriteStr("enum ")!
+				self.jmp.WriteStr(markdownEscaper.Replace(doc.Name))!
+			| doc::TypeEnum:
+				self.jmp.WriteStr("enum ")!
+				self.jmp.WriteStr(markdownEscaper.Replace(doc.Name))!
+				self.jmp.WriteStr(": type ")!
+			| doc::TypeAlias:
+				i := strings::IndexByte(doc.Code, '=')
+				self.jmp.WriteStr(markdownEscaper.Replace(strings::TrimSpace(doc.Code[:i])))!
+			| doc::StrictTypeAlias:
+				i := strings::IndexByte(doc.Code, ':')
+				self.jmp.WriteStr(markdownEscaper.Replace(strings::TrimSpace(doc.Code[:i])))!
+			}
 		}
 		self.jmp.WriteByte(']')!
 		// Write link.
@@ -183,21 +187,23 @@ impl gen {
 		self.jmp.WriteStr(")")!
 	}
 
-	fn vars(mut &self, doc: []&doc::Doc) {
+	fn vars(mut &self, mut doc: []&doc::Doc) {
 		mut header := false
-		for _, node in doc {
+		for (_, mut node) in doc {
 			if node.Owner != doc::Var {
 				continue
 			}
 			if !header {
-				self.out.WriteStr("## Globals\n\n")!
+				self.out.WriteStr("## Variables\n")!
+				code := node.Code
+				node.Code = ""
+				node.Name = "Variables"
+				self.pushJmp(node, 0)
+				node.Code = code
 				header = true
 			} else {
-				self.out.WriteStr("\n\n")!
+				self.out.WriteStr("\n\n---\n")!
 			}
-			self.pushJmp(node, 0)
-			self.out.WriteStr("### ")!
-			self.out.WriteStr(node.Name)!
 			self.out.WriteStr("\n```jule\n")!
 			self.out.WriteStr(node.Code)!
 			self.out.WriteStr("\n```\n")!
@@ -371,7 +377,7 @@ impl gen {
 		}
 	}
 
-	fn gen(mut &self, doc: []&doc::Doc): []byte {
+	fn gen(mut &self, mut doc: []&doc::Doc): []byte {
 		mut n := self.out.Len()
 		self.typeAliases(doc)
 		if n != self.out.Len() {
@@ -408,7 +414,7 @@ impl gen {
 }
 
 // Generates Markdown documentation from documentation data.
-fn Gen(doc: []&doc::Doc): []byte {
+fn Gen(mut doc: []&doc::Doc): []byte {
 	mut gen := new(gen)
 	gen.jmpc = {}
 	ret bytes::TrimSpace(gen.gen(doc))

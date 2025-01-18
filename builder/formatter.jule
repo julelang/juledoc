@@ -804,8 +804,11 @@ impl formatter {
 		mut max := 0
 		for j, line in lines {
 			row := rows[j]
-			self.writeCommentsExcept(row, true)
-			self.buf.Write(line)!
+			wr := len(line) > 0 // Do not write empty lines.
+			self.writeCommentsExcept(row, wr)
+			if wr {
+				self.buf.Write(line)!
+			}
 			// Handle comments if same-line condition is not appear or
 			// current row is not same as next row. So, we can move line comments
 			// to last statement of inline statements.
@@ -814,14 +817,16 @@ impl formatter {
 					max, n = self.getMax(lines[j:], rows[j:])
 				}
 				if n > 0 {
-					self.popRowCommentsByF(row, -1, true, fn(c: &comment) {
+					self.popRowCommentsByF(row, -1, wr, fn(c: &comment) {
 						self.write(strings::Repeat(" ", paddingAbs(max-utf8::RuneCount(line))+1))
 						self.writeComment(c)
 					})
 					n--
 				}
 			}
-			self.write("\n")
+			if wr {
+				self.write("\n")
+			}
 		}
 	}
 
@@ -829,7 +834,7 @@ impl formatter {
 		match type node.Data {
 		| &ast::TypeAlias:
 			mut d := (&ast::TypeAlias)(node.Data)
-			self.writeCommentsExcept(node.Token.Row, true)
+			self.writeCommentsExcept(d.Token.Row, true)
 			self.typeAliasDecl(d)
 			ret
 		| &ast::Var:
@@ -837,7 +842,7 @@ impl formatter {
 			if len(d.Directives) > 0 {
 				self.writeCommentsExcept(d.Directives[0].Tag.Row, true)
 			} else {
-				self.writeCommentsExcept(node.Token.Row, true)
+				self.writeCommentsExcept(d.Token.Row, true)
 			}
 			self.varDecl(d)
 			ret
@@ -846,7 +851,7 @@ impl formatter {
 			if len(d.Directives) > 0 {
 				self.writeCommentsExcept(d.Directives[0].Tag.Row, true)
 			} else {
-				self.writeCommentsExcept(node.Token.Row, true)
+				self.writeCommentsExcept(d.Token.Row, true)
 			}
 			self.fnDecl(d)
 			ret

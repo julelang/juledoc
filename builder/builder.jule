@@ -74,11 +74,40 @@ impl Builder {
 		ret code, ctx
 	}
 
-	fn node(self, mut node: ast::Node): &doc::Doc {
-		mut doc := new(doc::Doc)
-		code, mut ctx := self.readDocComments(self.formatNode(node))
-		doc.Code = code
-		doc.Ctx = ctx
+	fn formatMainNode(self, mut ast: &ast::AST, mut &i: int): str {
+		match type ast.Nodes[i].Data {
+		| &ast::Var:
+			// No-op:
+		|:
+			ret self.formatNode(ast.Nodes[i])
+		}
+		// For variables, do not use plain node formatting.
+		// Variables may be grouped with a common documentation.
+		// Do not waste it.
+		self.fmt.buf.Clear()
+		{
+			data := (&ast::Var)(ast.Nodes[i].Data)
+			mut row := data.Token.Row
+			if len(data.Directives) > 0 {
+				row = data.Directives[0].Tag.Row
+			}
+			if row-self.fmt.writeCommentsExcept(row, true) > 1 {
+				self.fmt.write("\n")
+			}
+		}
+		self.fmt.groupDecls[&ast::Var, ast::Node](ast.Nodes, i, fn(mut &d: &ast::Var) {
+			unsafe {
+				if !d.Binded && isPub(d.Ident) {
+					self.fmt.buf.Write(self.fmt.indent)!
+					self.fmt.varDecl(d)
+				}
+			}
+		})
+		i-- // Build function will advance the offset, avoid false offset.
+		ret strings::TrimSpace(self.fmt.buf.Str())
+	}
+
+	fn handleNodeDoc(self, node: ast::Node, mut doc: &doc::Doc): &doc::Doc {
 		match type node.Data {
 		| &ast::Var:
 			// NOTE:
@@ -138,6 +167,23 @@ impl Builder {
 			}
 		}
 		ret doc
+	}
+
+	fn mainNode(self, mut ast: &ast::AST, mut &i: int): &doc::Doc {
+		mut doc := new(doc::Doc)
+		code, mut ctx := self.readDocComments(self.formatMainNode(ast, i))
+		doc.Code = code
+		doc.Ctx = ctx
+		node := ast.Nodes[i]
+		ret self.handleNodeDoc(node, doc)
+	}
+
+	fn node(self, mut node: ast::Node): &doc::Doc {
+		mut doc := new(doc::Doc)
+		code, mut ctx := self.readDocComments(self.formatNode(node))
+		doc.Code = code
+		doc.Ctx = ctx
+		ret self.handleNodeDoc(node, doc)
 	}
 
 	// Returns MetaStruct by ident.
@@ -225,13 +271,15 @@ impl Builder {
 	fn BuildPartial(self, mut ast: &ast::AST, mut cm: &CommentMap): []&doc::Doc {
 		self.fmt.cm = cm
 		mut doc := make([]&doc::Doc, 0)
-		for (_, mut node) in ast.Nodes {
+		mut i := 0
+		for i < len(ast.Nodes); i++ {
+			mut node := ast.Nodes[i]
 			match type node.Data {
 			| &ast::Impl:
 				self.analysisImpl((&ast::Impl)(node.Data))
 				continue
 			}
-			mut nodeDoc := self.node(node)
+			mut nodeDoc := self.mainNode(ast, i)
 			if nodeDoc == nil {
 				continue
 			}
