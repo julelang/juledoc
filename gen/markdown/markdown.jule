@@ -88,7 +88,14 @@ impl gen {
 					// Indentation is lower than group indentation.
 					// This is end fo the group.
 					if *group > ctx.Indent {
-						self.out.WriteStr("\n```\n")!
+						// Do not add unnecessary space if the last ctx is separator.
+						// Because separator will be added a new-line. It assumes
+						// group comment may continue. But here, we know it will not.
+						// Just use the previous new-line.
+						if !lastIsSeparator {
+							self.out.WriteByte('\n')!
+						}
+						self.out.WriteStr("```\n")!
 						*group = 0
 					} else {
 						self.out.WriteStr("\n")!
@@ -109,7 +116,14 @@ impl gen {
 					// Indentation is lower than group indentation.
 					// This is end fo the group.
 					if *group > ctx.Indent {
-						self.out.WriteStr("\n```\n")!
+						// Do not add unnecessary space if the last ctx is separator.
+						// Because separator will be added a new-line. It assumes
+						// group comment may continue. But here, we know it will not.
+						// Just use the previous new-line.
+						if !lastIsSeparator {
+							self.out.WriteByte('\n')!
+						}
+						self.out.WriteStr("```\n")!
 						*group = 0
 					} else {
 						self.out.WriteStr("\n")!
