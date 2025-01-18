@@ -669,7 +669,7 @@ impl formatter {
 		ret
 	}
 
-	// Reports whether any field is actually written.
+	// Reports whether all fields is actually written.
 	fn fieldGroupDecls(&self, mut fields: []&field, mut &i: int): (wr: bool) {
 		const Cap = 1 << 4
 		mut lines := make([][]byte, 0, Cap)
@@ -711,14 +711,15 @@ impl formatter {
 			self.setBuf(self.ubuf()[:n])
 		}
 
+		wr = true
 		n = 0
 		mut max := 0
 		for k, line in lines {
 			row := rows[k]
 			isPub := isPub(fields[start+k].f.Ident) // Ignore private fields.
+			wr = wr && isPub
 			self.writeCommentsExcept(row, isPub)
 			if isPub {
-				wr = true
 				self.buf.Write(line)!
 			}
 			// Handle comments if same-line condition is not appear or
