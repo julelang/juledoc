@@ -6,6 +6,7 @@
 
 Official documentation generator for the Jule programming language.
 
+[Manual](https://manual.jule.dev/tools/juledoc) |
 [Contributing](./CONTRIBUTING.md) |
 [Community](https://jule.dev/community)
 
