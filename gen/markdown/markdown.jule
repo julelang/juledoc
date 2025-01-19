@@ -227,7 +227,7 @@ impl gen {
 			}
 			self.out.WriteStr("\n```jule\n")!
 			self.out.WriteStr(node.Code)!
-			self.out.WriteStr("\n```")!
+			self.out.WriteStr("\n```\n")!
 			self.gendoc(node)
 		}
 	}
