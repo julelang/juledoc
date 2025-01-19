@@ -260,6 +260,9 @@ impl Builder {
 	// Builds and returns documentation.
 	// Will not dispatch meta.
 	fn BuildPartial(self, mut ast: &ast::AST, mut cm: &CommentMap): []&doc::Doc {
+		if ast == nil {
+			ret nil
+		}
 		self.fmt.cm = cm
 		mut doc := make([]&doc::Doc, 0)
 		mut i := 0
