@@ -32,6 +32,9 @@ static markdownEscaper = strings::Replacer.New(
 static idEscaper = strings::Replacer.New(
 	"_", "-")
 
+// Replaces special characters for jump-table index.
+static jmpReplacer = strings::Replacer.New("\n", " ", "\t", "")
+
 // Generates Markdown documentation from documentation data.
 struct gen {
 	jmp:  strings::Builder // Jump table (aka contents list).
@@ -146,6 +149,10 @@ impl gen {
 
 	// Generates jmp item by doc and indent.
 	fn pushJmp(mut &self, doc: &doc::Doc, indent: int) {
+		// Returns s as index table name.
+		jmpName := fn(s: str): str {
+			ret jmpReplacer.Replace(markdownEscaper.Replace(strings::TrimSpace(s)))
+		}
 		// Jump table have content. Add new-line.
 		// Otherwise add the index title.
 		if self.jmp.Len() > 0 {
@@ -163,28 +170,28 @@ impl gen {
 			match doc.Owner {
 			| doc::Var:
 				i := strings::IndexAny(doc.Code, ":=")
-				self.jmp.WriteStr(markdownEscaper.Replace(doc.Code[:i]))!
+				self.jmp.WriteStr(jmpName(doc.Code[:i]))!
 			| doc::Func:
-				self.jmp.WriteStr(markdownEscaper.Replace(doc.Code))!
+				self.jmp.WriteStr(jmpName(doc.Code))!
 			| doc::Struct:
 				self.jmp.WriteStr("struct ")!
-				self.jmp.WriteStr(markdownEscaper.Replace(doc.Name))!
+				self.jmp.WriteStr(jmpName(doc.Name))!
 			| doc::Trait:
 				self.jmp.WriteStr("trait ")!
-				self.jmp.WriteStr(markdownEscaper.Replace(doc.Name))!
+				self.jmp.WriteStr(jmpName(doc.Name))!
 			| doc::Enum:
 				self.jmp.WriteStr("enum ")!
-				self.jmp.WriteStr(markdownEscaper.Replace(doc.Name))!
+				self.jmp.WriteStr(jmpName(doc.Name))!
 			| doc::TypeEnum:
 				self.jmp.WriteStr("enum ")!
-				self.jmp.WriteStr(markdownEscaper.Replace(doc.Name))!
+				self.jmp.WriteStr(jmpName(doc.Name))!
 				self.jmp.WriteStr(": type ")!
 			| doc::TypeAlias:
 				i := strings::IndexByte(doc.Code, '=')
-				self.jmp.WriteStr(markdownEscaper.Replace(strings::TrimSpace(doc.Code[:i])))!
+				self.jmp.WriteStr(jmpName(doc.Code[:i]))!
 			| doc::StrictTypeAlias:
 				i := strings::IndexByte(doc.Code, ':')
-				self.jmp.WriteStr(markdownEscaper.Replace(strings::TrimSpace(doc.Code[:i])))!
+				self.jmp.WriteStr(jmpName(doc.Code[:i]))!
 			}
 		}
 		self.jmp.WriteByte(']')!
