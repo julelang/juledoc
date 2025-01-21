@@ -1300,7 +1300,11 @@ impl exprFormatter {
 			self.fnCall((&ast::FuncCallExpr)(kind))
 		| &ast::KeyValPair | &ast::FieldExprPair:
 			self.write("{...:...}")
-		| &ast::BraceLit | &ast::StructLit:
+		| &ast::TypedBraceLit:
+			mut lit := (&ast::TypedBraceLit)(kind)
+			self.fmt.formatType(lit.Kind)
+			fall
+		| &ast::BraceLit:
 			self.write("{ ... }")
 		| &ast::SliceExpr:
 			self.write("[ ... ]")
