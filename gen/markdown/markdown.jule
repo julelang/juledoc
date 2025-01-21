@@ -29,7 +29,13 @@ static markdownEscaper = strings::Replacer.New(
 	"+", "\\+",
 	"\\", "\\\\",
 	"~", "\\~",
-	"@", "\\@")
+	"@", "\\@",
+	"#", "\\#",
+	".", "\\.",
+	"(", "\\(",
+	")", "\\)",
+	"!", "\\!",
+	"|", "\\|")
 
 // Replaces special characters for identifiers.
 // If a name will used for a hyperlink in the page, this replacer should be used.
