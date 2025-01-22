@@ -15,7 +15,7 @@ struct ctxBuilder {
 impl ctxBuilder {
 	fn text(self): doc::Text {
 		mut txt := strings::Builder{}
-		mut line, indent := handleDocLine(self.lines[self.i])
+		line, indent := handleDocLine(self.lines[self.i])
 		txt.WriteStr(line)!
 		self.i++ // Skip current line.
 		for self.i < len(self.lines); self.i++ {
@@ -31,7 +31,7 @@ impl ctxBuilder {
 			// Concat lines if indent is zero,
 			// otherwise split lines into other doc::Text instances.
 			if indent == 0 {
-				// Line is list. Do not append, break.
+				// Line is list item. Do not append, break.
 				if newLine[0] == '-' {
 					break
 				}
@@ -44,6 +44,23 @@ impl ctxBuilder {
 		ret doc::Text(txt.Str())
 	}
 
+	fn list(self, mut line: str): doc::ListItem {
+		mut txt := strings::Builder{}
+		txt.WriteStr(strings::TrimSpace(line[1:]))! // Add text with no list mark.
+		self.i++                                    // Skip current line.
+		// If possible, concat following lines.
+		for self.i < len(self.lines) && strings::HasSuffix(line, ","); self.i++ {
+			line, _ = handleDocLine(self.lines[self.i])
+			// Separator or new list item.
+			if len(line) == 0 || line[0] == '-' {
+				break
+			}
+			txt.WriteByte(' ')!
+			txt.WriteStr(line)!
+		}
+		ret doc::ListItem(txt.Str())
+	}
+
 	fn next(self): doc::Context {
 		mut ctx := doc::Context{}
 		mut line := self.lines[self.i]
@@ -52,12 +69,7 @@ impl ctxBuilder {
 			ctx.Node = doc::Separator(true)
 			self.i++
 		} else if line[0] == '-' {
-			// Use text like ListItem.
-			// Logic is same, so just cast the type.
-			mut txt := self.text()
-			// Trim line mark.
-			txt = doc::Text(strings::TrimSpace(str(txt[1:])))
-			ctx.Node = doc::ListItem(txt)
+			ctx.Node = self.list(line)
 		} else {
 			ctx.Node = self.text()
 		}
