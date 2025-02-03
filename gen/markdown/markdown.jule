@@ -225,7 +225,7 @@ impl gen {
 				continue
 			}
 			if !header {
-				self.out.WriteStr("\n\n## Variables\n")!
+				self.out.WriteStr("## Variables\n")!
 				code := node.Code
 				node.Code = ""
 				node.Name = "Variables"
@@ -365,8 +365,8 @@ impl gen {
 	}
 
 	fn gen(mut &self, mut doc: []&doc::Doc): []byte {
-		self.typeAliases(doc)
 		self.vars(doc)
+		self.typeAliases(doc)
 		self.funcs(doc)
 		self.traits(doc)
 		self.structs(doc)
