@@ -225,7 +225,7 @@ impl gen {
 				continue
 			}
 			if !header {
-				self.out.WriteStr("## Variables\n")!
+				self.out.WriteStr("\n\n## Variables\n")!
 				code := node.Code
 				node.Code = ""
 				node.Name = "Variables"
