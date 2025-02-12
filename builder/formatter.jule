@@ -126,7 +126,7 @@ impl formatter {
 				self.write("\n")
 			}
 			lrow = c.row
-			self.cm.buf = append(self.cm.buf[:i], self.cm.buf[i+1 : ]...)
+			self.cm.buf = append(self.cm.buf[:i], self.cm.buf[i+1:]...)
 			if buf {
 				self.buf.Write(self.indent)!
 				self.writeComment(c)
@@ -183,7 +183,7 @@ impl formatter {
 				if buf {
 					f(c)
 				}
-				self.cm.buf = append(self.cm.buf[:i], self.cm.buf[i+1 : ]...)
+				self.cm.buf = append(self.cm.buf[:i], self.cm.buf[i+1:]...)
 				continue
 			}
 			i++
@@ -198,7 +198,7 @@ impl formatter {
 				if buf {
 					f(c)
 				}
-				self.cm.buf = append(self.cm.buf[:i], self.cm.buf[i+1 : ]...)
+				self.cm.buf = append(self.cm.buf[:i], self.cm.buf[i+1:]...)
 				continue
 			} else if c.row > row {
 				break
@@ -1214,9 +1214,7 @@ impl exprFormatter {
 
 	fn slicing(&self, mut i: &ast::SlicingExpr) {
 		zip := self.bf.zip
-		defer {
-			self.bf.zip = zip
-		}
+		defer { self.bf.zip = zip }
 
 		mut lb, mut rb, mut cb := false, false, false
 		lr, rr, cr := isRanged(i.Start), isRanged(i.To), isRanged(i.Cap)
@@ -1245,9 +1243,11 @@ impl exprFormatter {
 		self.bf.zip = zip || !lr
 		self.format(i.Start)
 
-		padding := lb || rb || cb
-		if padding && i.Start != nil {
+		padding := !zip && (lb || rb || cb)
+		if padding && i.Start != nil && i.To != nil {
 			self.write(" : ")
+		} else if padding && i.Start == nil && i.Cap != nil {
+			self.write(": ")
 		} else {
 			self.write(":")
 		}
