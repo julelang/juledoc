@@ -139,7 +139,7 @@ fn docdoc(mut doc: []&doc::Doc): []byte {
 }
 
 fn saveFile(path: str, ctx: []byte) {
-	os::File.Write(path, ctx, 0o660) else {
+	os::WriteFile(path, ctx, 0o660) else {
 		writeError("error: could not write to file: " + path)
 		ret
 	}
@@ -158,7 +158,7 @@ fn docFile(path: str) {
 		writeError("error: no symbol to document: " + path)
 		ret
 	}
-	mut ast, mut cm := getAST(path, os::File.Read(path) else {
+	mut ast, mut cm := getAST(path, os::ReadFile(path) else {
 		writeError("error: file could not read: " + path)
 		ret
 	})
@@ -171,7 +171,7 @@ fn docFile(path: str) {
 }
 
 fn docPackage(path: str) {
-	mut dirents := os::Dir.Read(path) else {
+	mut dirents := os::ReadDir(path) else {
 		writeError("error: connot read package directory: " + path)
 		ret
 	}
@@ -189,7 +189,7 @@ fn docPackage(path: str) {
 			continue
 		}
 		filepath := filepath::Join(path, dirent.Name)
-		mut ast, mut cm := getAST(filepath, os::File.Read(filepath) else {
+		mut ast, mut cm := getAST(filepath, os::ReadFile(filepath) else {
 			writeError("error: file could not read: " + filepath)
 			ret
 		})
@@ -208,19 +208,18 @@ fn docPackage(path: str) {
 }
 
 fn docCommand(path: str) {
-	stat := os::Stat.Of(path) else {
+	stat := os::Stat(path) else {
 		writeError("error: connot read path: " + path)
 		ret
 	}
-	match {
-	| stat.IsDir():
+	if stat.IsDir() {
 		docPackage(path)
 		ret
-	| stat.IsReg():
-		if strings::HasSuffix(path, jule::Ext) {
-			docFile(path)
-			ret
-		}
+	}
+	// file
+	if strings::HasSuffix(path, jule::Ext) {
+		docFile(path)
+		ret
 	}
 	writeError("error: path is not supported: " + path)
 }
