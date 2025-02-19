@@ -212,14 +212,16 @@ fn docCommand(path: str) {
 		writeError("error: connot read path: " + path)
 		ret
 	}
-	if stat.IsDir() {
+	m := stat.Mode()
+	match {
+	| m.IsDir():
 		docPackage(path)
 		ret
-	}
-	// file
-	if strings::HasSuffix(path, jule::Ext) {
-		docFile(path)
-		ret
+	| m.IsRegular():
+		if strings::HasSuffix(path, jule::Ext) {
+			docFile(path)
+			ret
+		}
 	}
 	writeError("error: path is not supported: " + path)
 }
