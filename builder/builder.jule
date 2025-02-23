@@ -118,7 +118,7 @@ impl Builder {
 			// In the example expression, "foo" is a private value, so it is not documented.
 			// Reader cannot know the type of the "foo". The code writer should
 			// be consider cases like this and should write type declaration.
-			mut v := (&ast::Var)(node.Data)
+			v := (&ast::Var)(node.Data)
 			if v.Binded {
 				ret nil
 			}
@@ -129,33 +129,33 @@ impl Builder {
 			// We do not have to check whether this function is a test function.
 			// According to Jule's test function rules, a test function never can be public.
 			// So we will not document test functions.
-			mut f := (&ast::Func)(node.Data)
+			f := (&ast::Func)(node.Data)
 			if f.Binded {
 				ret nil
 			}
 			doc.Name = f.Ident
 			doc.Owner = doc::Func
 		| &ast::Struct:
-			mut s := (&ast::Struct)(node.Data)
+			s := (&ast::Struct)(node.Data)
 			if s.Binded {
 				ret nil
 			}
 			doc.Name = s.Ident
 			doc.Owner = doc::Struct
 		| &ast::Trait:
-			mut t := (&ast::Trait)(node.Data)
+			t := (&ast::Trait)(node.Data)
 			doc.Name = t.Ident
 			doc.Owner = doc::Trait
 		| &ast::Enum:
-			mut e := (&ast::Enum)(node.Data)
+			e := (&ast::Enum)(node.Data)
 			doc.Name = e.Ident
 			doc.Owner = doc::Enum
 		| &ast::TypeEnum:
-			mut e := (&ast::TypeEnum)(node.Data)
+			e := (&ast::TypeEnum)(node.Data)
 			doc.Name = e.Ident
 			doc.Owner = doc::TypeEnum
 		| &ast::TypeAlias:
-			mut a := (&ast::TypeAlias)(node.Data)
+			a := (&ast::TypeAlias)(node.Data)
 			if a.Binded {
 				ret nil
 			}

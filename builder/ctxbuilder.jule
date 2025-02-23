@@ -112,7 +112,7 @@ impl ctxBuilder {
 		self.simplifyLines()
 		mut sep := false // Previous iteration step added a separator.
 		for self.i < len(self.lines) {
-			lineCtx := self.next()
+			mut lineCtx := self.next()
 			match type lineCtx.Node {
 			| doc::Separator:
 				// Do not add duplicated seperators.
@@ -142,7 +142,7 @@ fn handleDocLine(mut line: str): (rest: str, indent: int) {
 	if line[0] == ' ' {
 		line = line[1:]
 	}
-	for _, r in []rune(line) {
+	for _, r in line {
 		if unicode::IsSpace(r) {
 			indent++
 			continue
