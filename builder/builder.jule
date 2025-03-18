@@ -86,7 +86,7 @@ impl Builder {
 		// Do not waste it.
 		self.fmt.buf.Clear()
 		{
-			data := (&ast::Var)(ast.Nodes[i].Data)
+			data := ast.Nodes[i].Data.(&ast::Var)
 			mut row := data.Token.Row
 			if len(data.Directives) > 0 {
 				row = data.Directives[0].Tag.Row
@@ -118,7 +118,7 @@ impl Builder {
 			// In the example expression, "foo" is a private value, so it is not documented.
 			// Reader cannot know the type of the "foo". The code writer should
 			// be consider cases like this and should write type declaration.
-			v := (&ast::Var)(node.Data)
+			v := node.Data.(&ast::Var)
 			if v.Binded {
 				ret nil
 			}
@@ -129,33 +129,33 @@ impl Builder {
 			// We do not have to check whether this function is a test function.
 			// According to Jule's test function rules, a test function never can be public.
 			// So we will not document test functions.
-			f := (&ast::Func)(node.Data)
+			f := node.Data.(&ast::Func)
 			if f.Binded {
 				ret nil
 			}
 			doc.Name = f.Ident
 			doc.Owner = doc::Func
 		| &ast::Struct:
-			s := (&ast::Struct)(node.Data)
+			s := node.Data.(&ast::Struct)
 			if s.Binded {
 				ret nil
 			}
 			doc.Name = s.Ident
 			doc.Owner = doc::Struct
 		| &ast::Trait:
-			t := (&ast::Trait)(node.Data)
+			t := node.Data.(&ast::Trait)
 			doc.Name = t.Ident
 			doc.Owner = doc::Trait
 		| &ast::Enum:
-			e := (&ast::Enum)(node.Data)
+			e := node.Data.(&ast::Enum)
 			doc.Name = e.Ident
 			doc.Owner = doc::Enum
 		| &ast::TypeEnum:
-			e := (&ast::TypeEnum)(node.Data)
+			e := node.Data.(&ast::TypeEnum)
 			doc.Name = e.Ident
 			doc.Owner = doc::TypeEnum
 		| &ast::TypeAlias:
-			a := (&ast::TypeAlias)(node.Data)
+			a := node.Data.(&ast::TypeAlias)
 			if a.Binded {
 				ret nil
 			}
@@ -211,7 +211,7 @@ impl Builder {
 		|:
 			ret
 		}
-		dest := (&ast::IdentType)(ast.Dest.Kind)
+		dest := ast.Dest.Kind.(&ast::IdentType)
 		// Destination is not public. Skip.
 		if !isPub(dest.Ident) {
 			ret
@@ -223,7 +223,7 @@ impl Builder {
 		if ast.IsTraitImpl() {
 			match type ast.Base.Kind {
 			| &ast::IdentType:
-				if !isPub((&ast::IdentType)(ast.Base.Kind).Ident) {
+				if !isPub(ast.Base.Kind.(&ast::IdentType).Ident) {
 					ret
 				}
 			}
@@ -270,7 +270,7 @@ impl Builder {
 			mut node := ast.Nodes[i]
 			match type node.Data {
 			| &ast::Impl:
-				self.analysisImpl((&ast::Impl)(node.Data))
+				self.analysisImpl(node.Data.(&ast::Impl))
 				continue
 			}
 			mut nodeDoc := self.mainNode(ast, i)

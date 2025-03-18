@@ -311,10 +311,6 @@ impl formatter {
 				self.formatExpr(item.Expr)
 			}
 		| &ast::TypeEnumItem:
-			if item.Ident != "" {
-				self.write(item.Ident)
-				self.write(": ")
-			}
 			self.formatType(item.Kind)
 		}
 		self.write(",")
@@ -774,7 +770,7 @@ impl formatter {
 				node := nodes[i]
 				match type node.Data {
 				| T:
-					decl = (T)(nodes[i].Data)
+					decl = nodes[i].Data.(T)
 					row = decl.Token.Row
 				|:
 					break loop
@@ -834,12 +830,12 @@ impl formatter {
 	fn node(&self, mut &node: ast::Node) {
 		match type node.Data {
 		| &ast::TypeAlias:
-			mut d := (&ast::TypeAlias)(node.Data)
+			mut d := node.Data.(&ast::TypeAlias)
 			self.writeCommentsExcept(d.Token.Row, true)
 			self.typeAliasDecl(d)
 			ret
 		| &ast::Var:
-			mut d := (&ast::Var)(node.Data)
+			mut d := node.Data.(&ast::Var)
 			if len(d.Directives) > 0 {
 				self.writeCommentsExcept(d.Directives[0].Tag.Row, true)
 			} else {
@@ -848,7 +844,7 @@ impl formatter {
 			self.varDecl(d)
 			ret
 		| &ast::Func:
-			mut d := (&ast::Func)(node.Data)
+			mut d := node.Data.(&ast::Func)
 			if len(d.Directives) > 0 {
 				self.writeCommentsExcept(d.Directives[0].Tag.Row, true)
 			} else {
@@ -857,7 +853,7 @@ impl formatter {
 			self.fnDecl(d)
 			ret
 		| &ast::Struct:
-			mut d := (&ast::Struct)(node.Data)
+			mut d := node.Data.(&ast::Struct)
 			if len(d.Directives) > 0 {
 				self.writeCommentsExcept(d.Directives[0].Tag.Row, true)
 			} else {
@@ -870,11 +866,11 @@ impl formatter {
 		}
 		match type node.Data {
 		| &ast::Enum:
-			self.enumDecl[&ast::Enum]((&ast::Enum)(node.Data))
+			self.enumDecl[&ast::Enum](node.Data.(&ast::Enum))
 		| &ast::TypeEnum:
-			self.enumDecl[&ast::TypeEnum]((&ast::TypeEnum)(node.Data))
+			self.enumDecl[&ast::TypeEnum](node.Data.(&ast::TypeEnum))
 		| &ast::Trait:
-			self.traitDecl((&ast::Trait)(node.Data))
+			self.traitDecl(node.Data.(&ast::Trait))
 		}
 	}
 }
@@ -908,15 +904,6 @@ impl typeFormatter {
 		}
 		self.write(id.Ident)
 		self.generics(id.Generics)
-	}
-
-	fn subIdent(self, mut id: &ast::SubIdentType) {
-		for i, ident in id.Idents {
-			self.write(ident.Ident)
-			if len(id.Idents)-i > 1 {
-				self.write(".")
-			}
-		}
 	}
 
 	fn namespace(self, mut ns: &ast::NamespaceType) {
@@ -979,7 +966,7 @@ impl typeFormatter {
 			self.write(")")
 			ret
 		}
-		mut types := (&ast::TupleType)(r.Kind.Kind).Types
+		mut types := r.Kind.Kind.(&ast::TupleType).Types
 		self.write("(")
 		for (i, mut t) in types {
 			ident := r.Idents[i]
@@ -1003,7 +990,7 @@ impl typeFormatter {
 			self.write("chan ")
 			match type c.Elem.Kind {
 			| &ast::ChanType:
-				elemC := (&ast::ChanType)(c.Elem.Kind)
+				elemC := c.Elem.Kind.(&ast::ChanType)
 				if elemC.Recv && !elemC.Send {
 					range = true
 					self.write("(")
@@ -1023,25 +1010,23 @@ impl typeFormatter {
 	fn format(self, mut &kind: ast::TypeKind) {
 		match type kind {
 		| &ast::IdentType:
-			self.ident((&ast::IdentType)(kind))
-		| &ast::SubIdentType:
-			self.subIdent((&ast::SubIdentType)(kind))
+			self.ident(kind.(&ast::IdentType))
 		| &ast::NamespaceType:
-			self.namespace((&ast::NamespaceType)(kind))
+			self.namespace(kind.(&ast::NamespaceType))
 		| &ast::SptrType:
-			self.sptr((&ast::SptrType)(kind))
+			self.sptr(kind.(&ast::SptrType))
 		| &ast::SliceType:
-			self.slice((&ast::SliceType)(kind))
+			self.slice(kind.(&ast::SliceType))
 		| &ast::PtrType:
-			self.ptr((&ast::PtrType)(kind))
+			self.ptr(kind.(&ast::PtrType))
 		| &ast::ArrayType:
-			self.array((&ast::ArrayType)(kind))
+			self.array(kind.(&ast::ArrayType))
 		| &ast::MapType:
-			self.mapType((&ast::MapType)(kind))
+			self.mapType(kind.(&ast::MapType))
 		| &ast::Func:
-			self.fmt.fnDecl((&ast::Func)(kind))
+			self.fmt.fnDecl(kind.(&ast::Func))
 		| &ast::ChanType:
-			self.chanType((&ast::ChanType)(kind))
+			self.chanType(kind.(&ast::ChanType))
 		}
 	}
 }
@@ -1279,46 +1264,53 @@ impl exprFormatter {
 		self.fmt.formatExpr(c.Data)
 	}
 
+	fn typeAssertion(&self, mut a: &ast::TypeAssertionExpr) {
+		self.fmt.formatExpr(a.Expr)
+		self.write(".(")
+		self.fmt.formatType(a.Kind)
+		self.write(")")
+	}
+
 	fn formatKind(&self, mut &kind: ast::ExprData) {
 		match type kind {
 		| &ast::RangeExpr:
-			mut expr := (&ast::RangeExpr)(kind)
+			mut expr := kind.(&ast::RangeExpr)
 			self.write("(")
 			self.formatKind(expr.Expr.Kind)
 			self.write(")")
 		| &ast::Type:
-			mut t := (&ast::Type)(kind)
+			mut t := kind.(&ast::Type)
 			self.fmt.formatType(t)
 		| &ast::Func:
-			mut f := (&ast::Func)(kind)
+			mut f := kind.(&ast::Func)
 			self.fmt.fnDecl(f)
 			self.fmt.write(" { ... }")
 		| &ast::IdentExpr:
-			self.ident((&ast::IdentExpr)(kind))
+			self.ident(kind.(&ast::IdentExpr))
 		| &ast::TupleExpr:
-			self.tuple((&ast::TupleExpr)(kind))
+			self.tuple(kind.(&ast::TupleExpr))
 		| &ast::LitExpr:
-			self.lit((&ast::LitExpr)(kind))
+			self.lit(kind.(&ast::LitExpr))
 		| &ast::UnsafeExpr:
-			self.unsafexpr((&ast::UnsafeExpr)(kind))
+			self.unsafexpr(kind.(&ast::UnsafeExpr))
 		| &ast::UnaryExpr:
-			self.unary((&ast::UnaryExpr)(kind))
+			self.unary(kind.(&ast::UnaryExpr))
 		| &ast::VariadicExpr:
-			self.variadic((&ast::VariadicExpr)(kind))
+			self.variadic(kind.(&ast::VariadicExpr))
 		| &ast::CastExpr:
-			self.cast((&ast::CastExpr)(kind))
+			self.cast(kind.(&ast::CastExpr))
 		| &ast::NamespaceExpr:
-			self.namespace((&ast::NamespaceExpr)(kind))
+			self.namespace(kind.(&ast::NamespaceExpr))
 		| &ast::SubIdentExpr:
-			self.subIdent((&ast::SubIdentExpr)(kind))
+			self.subIdent(kind.(&ast::SubIdentExpr))
 		| &ast::BinaryExpr:
-			self.binary((&ast::BinaryExpr)(kind))
+			self.binary(kind.(&ast::BinaryExpr))
 		| &ast::FuncCallExpr:
-			self.fnCall((&ast::FuncCallExpr)(kind))
+			self.fnCall(kind.(&ast::FuncCallExpr))
 		| &ast::KeyValPair | &ast::FieldExprPair:
 			self.write("{...:...}")
 		| &ast::TypedBraceLit:
-			mut lit := (&ast::TypedBraceLit)(kind)
+			mut lit := kind.(&ast::TypedBraceLit)
 			self.fmt.formatType(lit.Kind)
 			fall
 		| &ast::BraceLit:
@@ -1326,15 +1318,17 @@ impl exprFormatter {
 		| &ast::SliceExpr:
 			self.write("[ ... ]")
 		| &ast::IndexingExpr:
-			mut i := (&ast::IndexingExpr)(kind)
+			mut i := kind.(&ast::IndexingExpr)
 			self.format(i.Expr)
 			self.write("[ ... ]")
 		| &ast::SlicingExpr:
-			self.slicing((&ast::SlicingExpr)(kind))
+			self.slicing(kind.(&ast::SlicingExpr))
 		| &ast::ChanRecv:
-			self.chanRecv((&ast::ChanRecv)(kind))
+			self.chanRecv(kind.(&ast::ChanRecv))
 		| &ast::ChanSend:
-			self.chanSend((&ast::ChanSend)(kind))
+			self.chanSend(kind.(&ast::ChanSend))
+		| &ast::TypeAssertionExpr:
+			self.typeAssertion(kind.(&ast::TypeAssertionExpr))
 		}
 	}
 
@@ -1455,7 +1449,7 @@ impl binaryFormatter {
 		self.ef.fmt.popRowCommentsByC(self.bin.Right.Token.Row, self.bin.Right.Token.Column, false)
 		match type self.bin.Right.Kind {
 		| &ast::BinaryExpr:
-			self.bin = (&ast::BinaryExpr)(self.bin.Right.Kind)
+			self.bin = self.bin.Right.Kind.(&ast::BinaryExpr)
 			self.head(self.bin)
 			self.ef.fmt.doneIndent()
 			goto rep
@@ -1470,7 +1464,7 @@ impl binaryFormatter {
 	fn isZip(&self, mut &kind: ast::ExprData): bool {
 		match type kind {
 		| &ast::BinaryExpr:
-			mut bin := (&ast::BinaryExpr)(kind)
+			mut bin := kind.(&ast::BinaryExpr)
 			if binaryFormatter.isHardZipOp(bin.Op.Id) {
 				ret true
 			}
@@ -1483,7 +1477,7 @@ impl binaryFormatter {
 	fn isPrec(&self, first: int, &kind: ast::ExprData): int {
 		match type kind {
 		| &ast::BinaryExpr:
-			bin := (&ast::BinaryExpr)(kind)
+			bin := kind.(&ast::BinaryExpr)
 			if first != binaryFormatter.opPrec(bin.Op.Id) {
 				ret -1
 			}
@@ -1574,7 +1568,7 @@ fn paddingAbs(x: int): int {
 fn isPrimType(&t: &ast::Type): bool {
 	match type t.Kind {
 	| &ast::IdentType:
-		itd := (&ast::IdentType)(t.Kind)
+		itd := t.Kind.(&ast::IdentType)
 		ret itd.Ident == types::I8 ||
 			itd.Ident == types::I16 ||
 			itd.Ident == types::I32 ||
