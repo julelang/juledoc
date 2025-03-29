@@ -87,6 +87,10 @@ impl Builder {
 		self.fmt.buf.Clear()
 		{
 			data := ast.Nodes[i].Data.(&ast::Var)
+			// Format directly if data is grouped explicitly.
+			if data.Group != nil {
+				ret self.formatNode(ast.Nodes[i])
+			}
 			mut row := data.Token.Row
 			if len(data.Directives) > 0 {
 				row = data.Directives[0].Tag.Row
@@ -99,7 +103,7 @@ impl Builder {
 			unsafe {
 				if !d.Binded && isPub(d.Ident) {
 					self.fmt.buf.Write(self.fmt.indent)!
-					self.fmt.varDecl(d)
+					self.fmt.varDecl(d, true)
 				}
 			}
 		})
