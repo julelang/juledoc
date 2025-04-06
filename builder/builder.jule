@@ -75,10 +75,8 @@ impl Builder {
 	}
 
 	fn formatMainNode(self, mut ast: &ast::AST, mut &i: int): str {
-		match type ast.Nodes[i].Data {
-		| &ast::Var:
-			// No-op:
-		|:
+		mut data, ok := ast.Nodes[i].Data.(&ast::Var)
+		if !ok {
 			ret self.formatNode(ast.Nodes[i])
 		}
 		// For variables, do not use plain node formatting.
@@ -86,12 +84,7 @@ impl Builder {
 		// Do not waste it.
 		self.fmt.buf.Clear()
 		{
-			data := ast.Nodes[i].Data.(&ast::Var)
-			// Format directly if data is grouped explicitly.
-			if data.Group != nil {
-				ret self.formatNode(ast.Nodes[i])
-			}
-			mut row := data.Token.Row
+			mut row := ast.Nodes[i].Token.Row
 			if len(data.Directives) > 0 {
 				row = data.Directives[0].Tag.Row
 			}
@@ -107,7 +100,11 @@ impl Builder {
 				}
 			}
 		})
-		i-- // Build function will advance the offset, avoid false offset.
+		// If variable is not grouped, the build function will advance the offset,
+		// avoid false offset.
+		if len(data.Group) == 0 {
+			i--
+		}
 		ret strings::TrimSpace(self.fmt.buf.Str())
 	}
 

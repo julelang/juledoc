@@ -809,6 +809,30 @@ impl formatter {
 			ret
 		}
 
+		// If group declaration used, fall-back to special group handling.
+		const match type T {
+		| &ast::Var:
+			const match type Node {
+			| &ast::Var:
+				if nodes[i].Group != nil {
+					self.varGroup(nodes[i])
+					ret
+				}
+			| ast::Node | ast::Stmt:
+				mut v, ok := nodes[i].Data.(T)
+				if ok && v.Group != nil {
+					self.varGroup(v)
+					ret
+				}
+			}
+		| ast::Node | ast::Stmt:
+			mut v, ok := nodes[i].Data.(&ast::Var)
+			if ok && v.Group != nil {
+				self.varGroup(v)
+				ret
+			}
+		}
+
 		const Cap = 1 << 4
 		mut lines := make([][]byte, 0, Cap)
 		mut rows := make([]int, 0, Cap)
