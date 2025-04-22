@@ -63,7 +63,7 @@ fn BuildCommentMap(mut &tokens: []&token::Token): &CommentMap {
 	mut i := 0
 	for i < len(tokens) {
 		token := tokens[i]
-		if token.Id != token::Id.Comment {
+		if token.Id != token::Comment {
 			i++
 			continue
 		}

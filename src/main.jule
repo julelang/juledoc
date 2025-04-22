@@ -9,6 +9,8 @@ use "std/flag"
 use "std/jule"
 use "std/jule/ast"
 use "std/jule/build"
+use "std/jule/directive"
+use "std/jule/dist"
 use "std/jule/parser"
 use "std/jule/token"
 use "std/os"
@@ -25,20 +27,20 @@ fn writeError(message: str) {
 // Derived from the "std/jule/importer", stay up to date.
 // Reports whether the arg is exist is distos.
 fn checkOs(arg: str): (exist: bool) {
-	ret arg == build::DistOS.Windows ||
-		arg == build::DistOS.Darwin ||
-		arg == build::DistOS.Linux ||
-		arg == build::DistOS.Unix
+	ret arg == dist::Windows ||
+		arg == dist::Darwin ||
+		arg == dist::Linux ||
+		arg == dist::Unix
 }
 
 // Derived from the "std/jule/importer", stay up to date.
 // Reports whether the arg is exist is distarch.
 fn checkArch(arg: str): (exist: bool) {
-	ret arg == build::DistArch.I386 ||
-		arg == build::DistArch.Amd64 ||
-		arg == build::DistArch.Arm64 ||
-		arg == build::DistArch.X64 ||
-		arg == build::DistArch.X32
+	ret arg == dist::I386 ||
+		arg == dist::AMD64 ||
+		arg == dist::ARM64 ||
+		arg == dist::X64 ||
+		arg == dist::X32
 }
 
 // Derived from the "std/jule/importer", stay up to date.
@@ -103,7 +105,7 @@ fn isPassFileAnnotation(mut p: str): bool {
 
 fn containsBuildDirective(ast: &ast::AST): bool {
 	for _, d in ast.TopDirectives {
-		if d.Tag.Kind == build::Directive.Build {
+		if d.Tag.Kind == directive::Build {
 			ret true
 		}
 	}
@@ -113,7 +115,7 @@ fn containsBuildDirective(ast: &ast::AST): bool {
 fn getAST(path: str, mut data: []byte): (&ast::AST, &builder::CommentMap) {
 	mut file := token::Fileset.New(path)
 	unsafe { file.FillMut(data) }
-	mut errors := token::Lex(file, token::LexMode.Comment)
+	mut errors := token::Lex(file, token::Comments)
 	if len(errors) > 0 {
 		writeError("error: file could not formatted, have error(s): " + path)
 		ret nil, nil
@@ -158,10 +160,11 @@ fn docFile(path: str) {
 		writeError("error: no symbol to document: " + path)
 		ret
 	}
-	mut ast, mut cm := getAST(path, os::ReadFile(path) else {
+	mut ctx := os::ReadFile(path) else {
 		writeError("error: file could not read: " + path)
 		ret
-	})
+	}
+	mut ast, mut cm := getAST(path, ctx)
 	mut doc := builder::New().Build(ast, cm)
 	bytes := docdoc(doc)
 	if bytes == nil {
@@ -189,10 +192,11 @@ fn docPackage(path: str) {
 			continue
 		}
 		filepath := filepath::Join(path, dirent.Name)
-		mut ast, mut cm := getAST(filepath, os::ReadFile(filepath) else {
+		mut ctx := os::ReadFile(filepath) else {
 			writeError("error: file could not read: " + filepath)
 			ret
-		})
+		}
+		mut ast, mut cm := getAST(filepath, ctx)
 		mut doc := builder.BuildPartial(ast, cm)
 		if doc != nil {
 			alldoc = append(alldoc, doc...)
