@@ -166,6 +166,8 @@ impl Builder {
 			} else {
 				doc.Owner = doc::TypeAlias
 			}
+		| &ast::Impl:
+			// no-op, handled as special case
 		}
 		ret doc
 	}
@@ -222,11 +224,9 @@ impl Builder {
 		// the trait type declaration for implementation. If identifier type is
 		// not public, no need for documentation.
 		if ast.IsTraitImpl() {
-			match type ast.Base.Kind {
-			| &ast::IdentType:
-				if !isPub(ast.Base.Kind.(&ast::IdentType).Ident) {
-					ret
-				}
+			name, isName := ast.Base.Kind.(&ast::IdentType)
+			if isName && !isPub(name.Ident) {
+				ret
 			}
 			meta.Traits = append(meta.Traits, self.formatType(ast.Base))
 		}
@@ -269,10 +269,13 @@ impl Builder {
 		mut i := 0
 		for i < len(ast.Nodes); i++ {
 			mut node := ast.Nodes[i]
+			// Special cases.
 			match type node.Data {
 			| &ast::Impl:
 				self.analysisImpl(node.Data.(&ast::Impl))
 				continue
+			|:
+				// no-op
 			}
 			mut nodeDoc := self.mainNode(ast, i)
 			if nodeDoc == nil {
