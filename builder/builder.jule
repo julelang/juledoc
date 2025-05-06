@@ -96,7 +96,7 @@ impl Builder {
 			unsafe {
 				if !d.Binded && isPub(d.Ident) {
 					self.fmt.buf.Write(self.fmt.indent)!
-					self.fmt.varDecl(d, true)
+					self.fmt.varDecl(d, true, [])
 				}
 			}
 		})
