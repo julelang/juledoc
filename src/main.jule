@@ -113,9 +113,9 @@ fn containsBuildDirective(ast: &ast::AST): bool {
 }
 
 fn getAST(path: str, mut data: []byte): (&ast::AST, &builder::CommentMap) {
-	mut file := token::Fileset.New(path)
+	mut file := token::FileSet.New(path)
 	unsafe { file.FillMut(data) }
-	mut errors := token::Lex(file, token::Comments)
+	mut errors := token::ScanAll(file, token::Comments)
 	if len(errors) > 0 {
 		writeError("error: file could not formatted, have error(s): " + path)
 		ret nil, nil
