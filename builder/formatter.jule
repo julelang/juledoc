@@ -461,6 +461,7 @@ impl formatter {
 		}
 		if d.Scope != nil {
 			self.popRowCommentsByC(d.Scope.End.Row, d.Scope.End.Column, false)
+			self.popRowComments(d.Scope.End.Row, false)
 		}
 	}
 
