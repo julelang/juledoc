@@ -30,7 +30,7 @@ impl Builder {
 	}
 
 	// Formats type and returns formatted code.
-	fn formatType(self, mut t: &ast::Type): str {
+	fn formatType(self, mut t: &ast::Expr): str {
 		self.fmt.buf.Clear()
 		self.fmt.formatType(t)
 		ret strings::TrimSpace(self.fmt.buf.Str())
@@ -208,13 +208,10 @@ impl Builder {
 	fn analysisImpl(self, mut ast: &ast::Impl) {
 		// Destination type should be simple identifier type.
 		// Otherwise we have to assume this implementation is not suitable to analysis.
-		match type ast.Dest.Kind {
-		| &ast::IdentType:
-			break
-		|:
+		dest, _ := ast.Dest.Kind.(&ast::IdentExpr)
+		if dest == nil {
 			ret
 		}
-		dest := ast.Dest.Kind.(&ast::IdentType)
 		// Destination is not public. Skip.
 		if !isPub(dest.Ident) {
 			ret
@@ -224,7 +221,7 @@ impl Builder {
 		// the trait type declaration for implementation. If identifier type is
 		// not public, no need for documentation.
 		if ast.IsTraitImpl() {
-			name, isName := ast.Base.Kind.(&ast::IdentType)
+			name, isName := ast.Base.Kind.(&ast::IdentExpr)
 			if isName && !isPub(name.Ident) {
 				ret
 			}
