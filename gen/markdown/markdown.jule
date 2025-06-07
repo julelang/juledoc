@@ -12,7 +12,7 @@ const spacePerIndent = 4
 
 // Derived from "std/html" for HTML support, stay up to date.
 // Additionaly includes special Markdown characters.
-static markdownEscaper = strings::Replacer.New(
+let markdownEscaper = strings::Replacer.New(
 	`&`, "&amp;",
 	`'`, "&#39;",
 	`<`, "&lt;",
@@ -39,11 +39,11 @@ static markdownEscaper = strings::Replacer.New(
 
 // Replaces special characters for identifiers.
 // If a name will used for a hyperlink in the page, this replacer should be used.
-static idEscaper = strings::Replacer.New(
+let idEscaper = strings::Replacer.New(
 	"_", "-")
 
 // Replaces special characters for jump-table index.
-static jmpReplacer = strings::Replacer.New("\n", " ", "\t", "")
+let jmpReplacer = strings::Replacer.New("\n", " ", "\t", "")
 
 // Generates Markdown documentation from documentation data.
 struct gen {
