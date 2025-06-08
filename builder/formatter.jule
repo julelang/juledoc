@@ -1374,7 +1374,7 @@ impl exprFormatter {
 	}
 
 	fn selector(&self, mut si: &ast::SelectorExpr) {
-		self.format(si.Expr)
+		self.format(si.X)
 		self.write(".")
 		if self.fmt.row != si.Name.Row {
 			self.fmt.addIndent()
@@ -1410,7 +1410,7 @@ impl exprFormatter {
 		//		println("error handling...")
 		//	}
 		sie, _ := f.Func.Data.(&ast::SelectorExpr)
-		if sie != nil && sie.Expr.Token.Row != sie.Name.Row {
+		if sie != nil && sie.X.Token.Row != sie.Name.Row {
 			self.fmt.addIndent()
 			defer { self.fmt.doneIndent() }
 		}
@@ -1581,7 +1581,7 @@ impl exprFormatter {
 			self.binary(kind.(&ast::BinaryExpr))
 		| &ast::CallExpr:
 			self.call(kind.(&ast::CallExpr))
-		| &ast::KeyValueExpr | &ast::FieldExprPair:
+		| &ast::KeyValueExpr:
 			self.write("{...:...}")
 		| &ast::TypedBraceLit:
 			mut lit := kind.(&ast::TypedBraceLit)
