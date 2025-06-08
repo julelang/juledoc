@@ -94,7 +94,7 @@ impl Builder {
 		}
 		self.fmt.groupDecls[&ast::Var, ast::Node](ast.Nodes, i, fn(mut &d: &ast::Var) {
 			unsafe {
-				if !d.Binded && isPub(d.Ident) {
+				if !d.Bind && isPub(d.Name) {
 					self.fmt.buf.Write(self.fmt.indent)!
 					self.fmt.varDecl(d, true, [])
 				}
@@ -120,10 +120,10 @@ impl Builder {
 			// Reader cannot know the type of the "foo". The code writer should
 			// be consider cases like this and should write type declaration.
 			v := node.Data.(&ast::Var)
-			if v.Binded {
+			if v.Bind {
 				ret nil
 			}
-			doc.Name = v.Ident
+			doc.Name = v.Name
 			doc.Owner = doc::Var
 		| &ast::Func:
 			// NOTE:
@@ -131,36 +131,36 @@ impl Builder {
 			// According to Jule's test function rules, a test function never can be public.
 			// So we will not document test functions.
 			f := node.Data.(&ast::Func)
-			if f.Binded {
+			if f.Bind {
 				ret nil
 			}
-			doc.Name = f.Ident
+			doc.Name = f.Name
 			doc.Owner = doc::Func
 		| &ast::Struct:
 			s := node.Data.(&ast::Struct)
-			if s.Binded {
+			if s.Bind {
 				ret nil
 			}
-			doc.Name = s.Ident
+			doc.Name = s.Name
 			doc.Owner = doc::Struct
 		| &ast::Trait:
 			t := node.Data.(&ast::Trait)
-			doc.Name = t.Ident
+			doc.Name = t.Name
 			doc.Owner = doc::Trait
 		| &ast::Enum:
 			e := node.Data.(&ast::Enum)
-			doc.Name = e.Ident
+			doc.Name = e.Name
 			doc.Owner = doc::Enum
 		| &ast::TypeEnum:
 			e := node.Data.(&ast::TypeEnum)
-			doc.Name = e.Ident
+			doc.Name = e.Name
 			doc.Owner = doc::TypeEnum
 		| &ast::TypeAlias:
 			a := node.Data.(&ast::TypeAlias)
-			if a.Binded {
+			if a.Bind {
 				ret nil
 			}
-			doc.Name = a.Ident
+			doc.Name = a.Name
 			if a.Strict {
 				doc.Owner = doc::StrictTypeAlias
 			} else {
@@ -208,27 +208,27 @@ impl Builder {
 	fn analysisImpl(self, mut ast: &ast::Impl) {
 		// Destination type should be simple identifier type.
 		// Otherwise we have to assume this implementation is not suitable to analysis.
-		dest, _ := ast.Dest.Kind.(&ast::IdentExpr)
+		dest, _ := ast.Dest.Data.(&ast::NameExpr)
 		if dest == nil {
 			ret
 		}
 		// Destination is not public. Skip.
-		if !isPub(dest.Ident) {
+		if !isPub(dest.Name) {
 			ret
 		}
-		mut meta := self.getStructMeta(dest.Ident)
+		mut meta := self.getStructMeta(dest.Name)
 		// If it is trait implementation, we have to check identifier type for
 		// the trait type declaration for implementation. If identifier type is
 		// not public, no need for documentation.
 		if ast.IsTraitImpl() {
-			name, isName := ast.Base.Kind.(&ast::IdentExpr)
-			if isName && !isPub(name.Ident) {
+			name, isName := ast.Base.Data.(&ast::NameExpr)
+			if isName && !isPub(name.Name) {
 				ret
 			}
 			meta.Traits = append(meta.Traits, self.formatType(ast.Base))
 		}
 		for (_, mut m) in ast.Methods {
-			if isPub(m.Ident) {
+			if isPub(m.Name) {
 				mut node := ast::Node{
 					Token: m.Token,
 					Data: m,
