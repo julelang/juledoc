@@ -252,9 +252,9 @@ impl formatter {
 			match {
 			| i == 0:
 				self.write(" ")
-			| arg.Id != token::RPAREN &&
-				d.Args[i-1].Id != token::LPAREN &&
-				d.Args[i-1].Id != token::NOT:
+			| arg.ID != token::RPAREN &&
+				d.Args[i-1].ID != token::LPAREN &&
+				d.Args[i-1].ID != token::NOT:
 				self.write(" ")
 			}
 			self.write(arg.Kind)
@@ -670,7 +670,7 @@ impl formatter {
 					self.write("let ")
 				} else if d.Const {
 					self.write("const ")
-				} else if d.Op == nil || d.Op.Id == token::DEFINE {
+				} else if d.Op == nil || d.Op.ID == token::DEFINE {
 					self.write("let ")
 				}
 			}
@@ -1667,7 +1667,7 @@ impl binaryFormatter {
 		// prec mode is on
 
 		// write space if operator is not precedenced
-		if binaryFormatter.opPrec(self.bin.Op.Id) == 0 {
+		if binaryFormatter.opPrec(self.bin.Op.ID) == 0 {
 			self.write(" ")
 		}
 	}
@@ -1675,7 +1675,7 @@ impl binaryFormatter {
 	fn head(&self, mut &bin: &ast::BinaryExpr) {
 		self.ef.fmt.popRowCommentsByC(bin.X.Token.Row, bin.X.Token.Column, false)
 		self.format(bin.X)
-		self.op = binaryFormatter.isOp(bin.Op.Id)
+		self.op = binaryFormatter.isOp(bin.Op.ID)
 		self.writeSpace()
 		self.ef.fmt.popRowCommentsByC(bin.Op.Row, bin.Op.Column, false)
 		self.write(bin.Op.Kind)
@@ -1716,7 +1716,7 @@ impl binaryFormatter {
 		match type kind {
 		| &ast::BinaryExpr:
 			mut bin := kind.(&ast::BinaryExpr)
-			if binaryFormatter.isHardZipOp(bin.Op.Id) {
+			if binaryFormatter.isHardZipOp(bin.Op.ID) {
 				ret true
 			}
 			ret self.isZip(bin.X.Data) || self.isZip(bin.Y.Data)
@@ -1729,7 +1729,7 @@ impl binaryFormatter {
 		match type kind {
 		| &ast::BinaryExpr:
 			bin := kind.(&ast::BinaryExpr)
-			if first != binaryFormatter.opPrec(bin.Op.Id) {
+			if first != binaryFormatter.opPrec(bin.Op.ID) {
 				ret -1
 			}
 			mut prec := self.isPrec(first, bin.X.Data)
@@ -1751,7 +1751,7 @@ impl binaryFormatter {
 			ret
 		}
 		// detect zip
-		if binaryFormatter.isOp(bin.Op.Id) {
+		if binaryFormatter.isOp(bin.Op.ID) {
 			self.zip = true
 			ret
 		}
@@ -1764,7 +1764,7 @@ impl binaryFormatter {
 		// detect prec
 		if !self.prec {
 			// enable prec formatting if all operators is not have same prec
-			first := binaryFormatter.opPrec(bin.Op.Id)
+			first := binaryFormatter.opPrec(bin.Op.ID)
 			self.prec = first != self.isPrec(first, bin.X.Data) || first != self.isPrec(first, bin.Y.Data)
 		}
 	}
@@ -1794,7 +1794,7 @@ impl binaryFormatter {
 		|:
 			// enable zip mode if prec mode is enabled and
 			// current binary operator have high precedence
-			self.zip = self.zip || self.prec && binaryFormatter.opPrec(self.bin.Op.Id) == 1
+			self.zip = self.zip || self.prec && binaryFormatter.opPrec(self.bin.Op.ID) == 1
 
 			// disable prec mode for non-tail expressions
 			self.prec = false
