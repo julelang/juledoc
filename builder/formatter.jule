@@ -502,7 +502,15 @@ impl formatter {
 			// one-liner body
 			self.write(" ")
 			mut e := d.Scope.Stmts[0].Data.(&ast::Expr)
+			// Special case: list expressions must be in range for one-line short function literals.
+			_, isTuple := e.Data.(&ast::TupleExpr)
+			if isTuple {
+				self.write("(")
+			}
 			self.formatExpr(e)
+			if isTuple {
+				self.write(")")
+			}
 			self.popRowCommentsByC(e.End.Row, e.End.Column, false)
 			self.popRowComments(e.End.Row, false)
 			self.row = e.End.Row
