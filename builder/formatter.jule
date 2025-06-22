@@ -1625,7 +1625,9 @@ impl exprFormatter {
 		| &ast::IndexExpr:
 			mut i := kind.(&ast::IndexExpr)
 			self.format(i.X)
-			self.write("[ ... ]")
+			self.write("[")
+			self.format(i.Index)
+			self.write("]")
 		| &ast::SlicingExpr:
 			self.slicing(kind.(&ast::SlicingExpr))
 		| &ast::ChanSend:
