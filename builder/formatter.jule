@@ -406,7 +406,7 @@ impl formatter {
 					}
 					self.write("self")
 				} else {
-					if !jule::IsBlank(p.Name) {
+					if !jule::IsAnon(p.Name) {
 						self.write(p.Name)
 						self.write(": ")
 					} else if p.Reference {
@@ -485,7 +485,7 @@ impl formatter {
 			self.write("unsafe ")
 		}
 		self.write("fn")
-		if !jule::IsBlank(d.Name) {
+		if !jule::IsAnon(d.Name) {
 			self.write(" ")
 			self.write(d.Name)
 		}
@@ -1589,7 +1589,9 @@ impl exprFormatter {
 		| &ast::Func:
 			mut f := kind.(&ast::Func)
 			self.fmt.fnDecl(f)
-			self.fmt.write(" { ... }")
+			if !f.IsShort() && f.Scope != nil {
+				self.fmt.write(" { ... }")
+			}
 		| &ast::NameExpr:
 			self.name(kind.(&ast::NameExpr))
 		| &ast::TupleExpr:
