@@ -121,7 +121,7 @@ fn getAST(path: str, mut data: []byte): (&ast::AST, &builder::CommentMap) {
 		ret nil, nil
 	}
 
-	mut cm := builder::BuildCommentMap(file.Tokens)
+	mut cm := builder::BuildCommentMap(&file.Tokens)
 	mut finfo := parser::ParseFile(file)
 	if len(finfo.Errors) > 0 {
 		writeError("error: file could not formatted, have error(s): " + path)

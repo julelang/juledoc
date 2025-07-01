@@ -23,28 +23,28 @@ struct Builder {
 
 impl Builder {
 	// Formats node and returns formatted code (including documentation comments).
-	fn formatNode(self, mut node: ast::Node): str {
+	fn formatNode(*self, mut node: ast::Node): str {
 		self.fmt.buf.Clear()
 		self.fmt.node(node)
 		ret strings::TrimSpace(self.fmt.buf.Str())
 	}
 
 	// Formats type and returns formatted code.
-	fn formatType(self, mut t: &ast::Expr): str {
+	fn formatType(*self, mut t: &ast::Expr): str {
 		self.fmt.buf.Clear()
 		self.fmt.formatType(t)
 		ret strings::TrimSpace(self.fmt.buf.Str())
 	}
 
 	// Builds context from doc comments.
-	fn buildCtx(self, doc: str): []doc::Context {
+	fn buildCtx(*self, doc: str): []doc::Context {
 		ctxb := ctxBuilder{}
 		ret ctxb.build(doc)
 	}
 
 	// Reads documentation comments from code and returns meta.
 	// Also returns code with no documentation comments.
-	fn readDocComments(self, mut code: str): (str, []doc::Context) {
+	fn readDocComments(*self, mut code: str): (str, []doc::Context) {
 		// Read doc comments.
 		mut doc := strings::Builder{}
 		for len(code) > 0 {
@@ -74,17 +74,17 @@ impl Builder {
 		ret code, ctx
 	}
 
-	fn formatMainNode(self, mut ast: &ast::AST, mut &i: int): str {
-		mut data, ok := ast.Nodes[i].Data.(&ast::Var)
+	fn formatMainNode(*self, mut ast: &ast::AST, mut &i: *int): str {
+		mut data, ok := ast.Nodes[*i].Data.(&ast::Var)
 		if !ok {
-			ret self.formatNode(ast.Nodes[i])
+			ret self.formatNode(ast.Nodes[*i])
 		}
 		// For variables, do not use plain node formatting.
 		// Variables may be grouped with a common documentation.
 		// Do not waste it.
 		self.fmt.buf.Clear()
 		{
-			mut row := ast.Nodes[i].Token.Row
+			mut row := ast.Nodes[*i].Token.Row
 			if len(data.Directives) > 0 {
 				row = data.Directives[0].Tag.Row
 			}
@@ -92,7 +92,7 @@ impl Builder {
 				self.fmt.write("\n")
 			}
 		}
-		self.fmt.groupDecls[&ast::Var, ast::Node](ast.Nodes, i, fn(mut &d: &ast::Var) {
+		self.fmt.groupDecls[&ast::Var, ast::Node](ast.Nodes, i, fn(mut d: &ast::Var) {
 			unsafe {
 				if !d.Bind && isPub(d.Name) {
 					self.fmt.buf.Write(self.fmt.indent)!
@@ -103,12 +103,12 @@ impl Builder {
 		// If variable is not grouped, the build function will advance the offset,
 		// avoid false offset.
 		if len(data.Group) == 0 {
-			i--
+			*i--
 		}
 		ret strings::TrimSpace(self.fmt.buf.Str())
 	}
 
-	fn handleNodeDoc(self, node: ast::Node, mut doc: &doc::Doc): &doc::Doc {
+	fn handleNodeDoc(*self, node: ast::Node, mut doc: &doc::Doc): &doc::Doc {
 		match type node.Data {
 		| &ast::Var:
 			// NOTE:
@@ -172,16 +172,16 @@ impl Builder {
 		ret doc
 	}
 
-	fn mainNode(self, mut ast: &ast::AST, mut &i: int): &doc::Doc {
+	fn mainNode(*self, mut ast: &ast::AST, mut &i: *int): &doc::Doc {
 		mut doc := new(doc::Doc)
 		code, mut ctx := self.readDocComments(self.formatMainNode(ast, i))
 		doc.Code = code
 		doc.Ctx = ctx
-		node := ast.Nodes[i]
+		node := ast.Nodes[*i]
 		ret self.handleNodeDoc(node, doc)
 	}
 
-	fn node(self, mut node: ast::Node): &doc::Doc {
+	fn node(*self, mut node: ast::Node): &doc::Doc {
 		mut doc := new(doc::Doc)
 		code, mut ctx := self.readDocComments(self.formatNode(node))
 		doc.Code = code
@@ -191,7 +191,7 @@ impl Builder {
 
 	// Returns MetaStruct by ident.
 	// If not exist already, appends new MetaStruct by ident and returns it.
-	fn getStructMeta(self, ident: str): &doc::MetaStruct {
+	fn getStructMeta(*self, ident: str): &doc::MetaStruct {
 		for (_, mut hash) in self.structMetas {
 			if hash.ident == ident {
 				ret hash.meta
@@ -205,7 +205,7 @@ impl Builder {
 		ret meta
 	}
 
-	fn analysisImpl(self, mut ast: &ast::Impl) {
+	fn analysisImpl(*self, mut ast: &ast::Impl) {
 		// Destination type should be simple identifier type.
 		// Otherwise we have to assume this implementation is not suitable to analysis.
 		dest, _ := ast.Dest.Data.(&ast::NameExpr)
@@ -239,7 +239,7 @@ impl Builder {
 	}
 
 	// Dispatches all collected struct meta.
-	fn dispatchStructMeta(self, mut doc: []&doc::Doc) {
+	fn dispatchStructMeta(*self, mut doc: []&doc::Doc) {
 		for (_, mut hash) in self.structMetas {
 			for (_, mut node) in doc {
 				if (node.Owner == doc::Struct || node.Owner == doc::StrictTypeAlias) &&
@@ -251,13 +251,13 @@ impl Builder {
 	}
 
 	// Dispatches all collected meta.
-	fn DispatchMeta(self, mut doc: []&doc::Doc) {
+	fn DispatchMeta(*self, mut doc: []&doc::Doc) {
 		self.dispatchStructMeta(doc)
 	}
 
 	// Builds and returns documentation.
 	// Will not dispatch meta.
-	fn BuildPartial(self, mut ast: &ast::AST, mut cm: &CommentMap): []&doc::Doc {
+	fn BuildPartial(*self, mut ast: &ast::AST, mut cm: &CommentMap): []&doc::Doc {
 		if ast == nil {
 			ret nil
 		}
@@ -274,7 +274,7 @@ impl Builder {
 			|:
 				// no-op
 			}
-			mut nodeDoc := self.mainNode(ast, i)
+			mut nodeDoc := self.mainNode(ast, &i)
 			if nodeDoc == nil {
 				continue
 			}
@@ -288,7 +288,7 @@ impl Builder {
 	}
 
 	// Builds and returns documentation with dispatched meta.
-	fn Build(self, mut ast: &ast::AST, mut cm: &CommentMap): []&doc::Doc {
+	fn Build(*self, mut ast: &ast::AST, mut cm: &CommentMap): []&doc::Doc {
 		mut doc := self.BuildPartial(ast, cm)
 		self.DispatchMeta(doc)
 		ret doc
