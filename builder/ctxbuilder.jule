@@ -15,11 +15,26 @@ struct ctxBuilder {
 impl ctxBuilder {
 	fn text(*self): doc::Text {
 		mut txt := strings::Builder{}
-		line, indent := handleDocLine(self.lines[self.i])
+
+		// Handle the first line with not whitespace trim.
+		// It will be trimmed if needed.
+		// This is mandatory to keep whitespaces of subscopes.
+		mut line, indent := handleDocLine(self.lines[self.i], false)
+
+		// Enable whitespace trim mode if indentation is main-scope.
+		trimWS := indent == 0
+
+		// If whitespace trimming is needed, trim whitespaces of the first line.
+		if trimWS {
+			line = strings::Trim(line, " ")
+		}
+
+		// Append the first line.
 		txt.WriteStr(line)!
+
 		self.i++ // Skip current line.
 		for self.i < len(self.lines); self.i++ {
-			newLine, newIndent := handleDocLine(self.lines[self.i])
+			newLine, newIndent := handleDocLine(self.lines[self.i], trimWS)
 			// Separator.
 			if len(newLine) == 0 {
 				break
@@ -50,7 +65,7 @@ impl ctxBuilder {
 		self.i++                                    // Skip current line.
 		// If possible, concat following lines.
 		for self.i < len(self.lines) && strings::HasSuffix(line, ","); self.i++ {
-			line, _ = handleDocLine(self.lines[self.i])
+			line, _ = handleDocLine(self.lines[self.i], true)
 			// Separator or new list item.
 			if len(line) == 0 || line[0] == '-' {
 				break
@@ -64,7 +79,7 @@ impl ctxBuilder {
 	fn next(*self): doc::Context {
 		mut ctx := doc::Context{}
 		mut line := self.lines[self.i]
-		line, ctx.Indent = handleDocLine(line)
+		line, ctx.Indent = handleDocLine(line, true)
 		if len(line) == 0 {
 			ctx.Node = doc::Separator(true)
 			self.i++
@@ -83,7 +98,7 @@ impl ctxBuilder {
 		}
 		mut i := 0
 		for i < len(self.lines); i++ {
-			line, _ := handleDocLine(self.lines[i])
+			line, _ := handleDocLine(self.lines[i], true)
 			if len(line) == 0 {
 				continue
 			}
@@ -95,7 +110,7 @@ impl ctxBuilder {
 		}
 		i = len(self.lines) - 1
 		for ; i-- {
-			line, _ := handleDocLine(self.lines[i])
+			line, _ := handleDocLine(self.lines[i], true)
 			if len(line) == 0 {
 				continue
 			}
@@ -131,7 +146,8 @@ impl ctxBuilder {
 
 // Removes leading spaces from doc comment and
 // returns with indentation level of line.
-fn handleDocLine(mut line: str): (rest: str, indent: int) {
+// If ws true, ignores leading and trailing whitespaces.
+fn handleDocLine(mut line: str, ws: bool): (rest: str, indent: int) {
 	if len(line) == 0 {
 		ret "", 0
 	}
@@ -143,11 +159,15 @@ fn handleDocLine(mut line: str): (rest: str, indent: int) {
 		line = line[1:]
 	}
 	for _, r in line {
-		if unicode::IsSpace(r) {
+		if r != ' ' && unicode::IsSpace(r) {
 			indent++
 			continue
 		}
 		break
 	}
-	ret line[indent:], indent
+	rest = line[indent:]
+	if ws {
+		rest = strings::Trim(rest, " ")
+	}
+	ret
 }
