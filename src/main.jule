@@ -2,9 +2,9 @@
 // Use of this source code is governed by a BSD 3-Clause
 // license that can be found in the LICENSE file.
 
-use "builder"
-use "doc"
-use "gen/markdown"
+use "juledoc/builder"
+use "juledoc/doc"
+use "juledoc/gen/markdown"
 use "std/flag"
 use "std/jule"
 use "std/jule/ast"
