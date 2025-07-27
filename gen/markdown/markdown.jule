@@ -182,10 +182,15 @@ impl gen {
 				i := strings::IndexAny(doc.Code, ":=")
 				self.jmp.WriteStr(jmpName(doc.Code[:i]))!
 			| doc::Func:
-				self.jmp.WriteStr(jmpName(doc.Code))!
+				// Start writing from fn keyword to avoid directives in jumptable.
+				i := strings::Index(doc.Code, "fn ")
+				self.jmp.WriteStr(jmpName(doc.Code[i:]))!
 			| doc::Struct:
-				self.jmp.WriteStr("struct ")!
-				self.jmp.WriteStr(jmpName(doc.Name))!
+				// Start writing from struct keyword to avoid directives in jumptable.
+				i := strings::Index(doc.Code, "struct ")
+				// Limit writing with the '{' token to avoid body of struct.
+				j := strings::IndexByte(doc.Code, '{')
+				self.jmp.WriteStr(jmpName(doc.Code[i:j]))!
 			| doc::Trait:
 				self.jmp.WriteStr("trait ")!
 				self.jmp.WriteStr(jmpName(doc.Name))!
