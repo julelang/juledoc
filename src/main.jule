@@ -15,6 +15,7 @@ use "std/jule/parser"
 use "std/jule/token"
 use "std/os"
 use "std/os/filepath"
+use "std/slices"
 use "std/strings"
 
 let mut _W = new(bool, false) // Flag -w
@@ -178,6 +179,9 @@ fn docPackage(path: str) {
 		writeError("error: connot read package directory: " + path)
 		ret
 	}
+	// Sort directories by name to handle them in
+	// the same order on every possible system.
+	slices::SortFunc(dirents, fn|a, b| strings::Compare(a.Name, b.Name))
 	// Use general builder to handle all package files with common meta.
 	// Build partially ASTs and then dispatch all common meta for the whole package.
 	// This is important because methods may be defined in different files,
