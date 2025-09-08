@@ -16,4 +16,4 @@ jobs:
 
       - name: Build JuleDoc
         run: |
-          julec src
+          julec build src
