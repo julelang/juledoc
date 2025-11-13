@@ -486,8 +486,8 @@ impl formatter {
 			self.directives(d.Directives)
 			self.buf.Write(self.indent)!
 		}
-		if d.Bind {
-			self.write("cpp ")
+		if d.Extern {
+			self.write("extern ")
 		}
 		if d.Unsafe {
 			self.write("unsafe ")
@@ -593,8 +593,8 @@ impl formatter {
 				self.write("\n")
 			}
 		}
-		if d.Bind {
-			self.write("cpp ")
+		if d.Extern {
+			self.write("extern ")
 		}
 		self.write("struct ")
 		self.write(d.Name)
@@ -672,8 +672,8 @@ impl formatter {
 	}
 
 	fn typeAliasDecl(&self, mut d: &ast::TypeAlias) {
-		if d.Bind {
-			self.write("cpp ")
+		if d.Extern {
+			self.write("extern ")
 		}
 		self.write("type ")
 		self.write(d.Name)
@@ -698,8 +698,8 @@ impl formatter {
 			if len(d.Directives) != 0 {
 				self.directives(d.Directives)
 			}
-			if d.Bind {
-				self.write("cpp let ")
+			if d.Extern {
+				self.write("extern let ")
 			} else {
 				if d.Static {
 					self.write("let ")
@@ -1392,8 +1392,8 @@ impl exprFormatter {
 	}
 
 	fn name(&self, id: &ast::NameExpr) {
-		if id.Bind {
-			self.write("cpp.")
+		if id.Extern {
+			self.write("extern.")
 		}
 		self.write(id.Name)
 	}
