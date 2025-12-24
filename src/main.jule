@@ -20,9 +20,9 @@ use "std/strings"
 
 let mut _W = new(bool, false) // Flag -w
 
-fn writeError(message: str) {
-	os::Stderr().WriteStr(message)!
-	os::Stderr().WriteStr("\n")!
+async fn writeError(message: str) {
+	os::Stderr().WriteStr(message).await!
+	os::Stderr().WriteStr("\n").await!
 }
 
 // Derived from the "std/jule/importer", stay up to date.
@@ -113,19 +113,19 @@ fn containsBuildDirective(ast: &ast::AST): bool {
 	ret false
 }
 
-fn getAST(path: str, mut data: []byte): (&ast::AST, &builder::CommentMap) {
+async fn getAST(path: str, mut data: []byte): (&ast::AST, &builder::CommentMap) {
 	mut file := token::FileSet.New(path)
 	unsafe { file.FillMut(data) }
 	mut errors := token::ScanAll(file, token::Comments)
 	if len(errors) > 0 {
-		writeError("error: file could not formatted, have error(s): " + path)
+		writeError("error: file could not formatted, have error(s): " + path).await
 		ret nil, nil
 	}
 
 	mut cm := builder::BuildCommentMap(&file.Tokens)
 	mut finfo := parser::ParseFile(file)
 	if len(finfo.Errors) > 0 {
-		writeError("error: file could not formatted, have error(s): " + path)
+		writeError("error: file could not formatted, have error(s): " + path).await
 		ret nil, nil
 	}
 	if containsBuildDirective(finfo.AST) {
@@ -141,42 +141,42 @@ fn docdoc(mut doc: []&doc::Doc): []byte {
 	ret markdown::Gen(doc)
 }
 
-fn saveFile(path: str, ctx: []byte) {
-	os::WriteFile(path, ctx, 0o660) else {
-		writeError("error: could not write to file: " + path)
+async fn saveFile(path: str, ctx: []byte) {
+	os::WriteFile(path, ctx, 0o660).await else {
+		writeError("error: could not write to file: " + path).await
 		ret
 	}
 }
 
-fn handleOut(ctx: []byte) {
+async fn handleOut(ctx: []byte) {
 	if *_W {
-		saveFile("doc.md", ctx)
+		saveFile("doc.md", ctx).await
 		ret
 	}
-	os::Stdout().Write(ctx)!
+	os::Stdout().Write(ctx).await!
 }
 
-fn docFile(path: str) {
+async fn docFile(path: str) {
 	if !isPassFileAnnotation(path) {
-		writeError("error: no symbol to document: " + path)
+		writeError("error: no symbol to document: " + path).await
 		ret
 	}
-	mut ctx := os::ReadFile(path) else {
-		writeError("error: file could not read: " + path)
+	mut ctx := os::ReadFile(path).await else {
+		writeError("error: file could not read: " + path).await
 		ret
 	}
-	mut ast, mut cm := getAST(path, ctx)
+	mut ast, mut cm := getAST(path, ctx).await
 	mut doc := builder::New().Build(ast, cm)
 	bytes := docdoc(doc)
 	if bytes == nil {
-		writeError("error: no symbol to document: " + path)
+		writeError("error: no symbol to document: " + path).await
 	}
-	handleOut(bytes)
+	handleOut(bytes).await
 }
 
-fn docPackage(path: str) {
+async fn docPackage(path: str) {
 	mut dirents := os::ReadDir(path) else {
-		writeError("error: connot read package directory: " + path)
+		writeError("error: connot read package directory: " + path).await
 		ret
 	}
 	// Sort directories by name to handle them in
@@ -196,11 +196,11 @@ fn docPackage(path: str) {
 			continue
 		}
 		filepath := filepath::Join(path, dirent.Name)
-		mut ctx := os::ReadFile(filepath) else {
-			writeError("error: file could not read: " + filepath)
+		mut ctx := os::ReadFile(filepath).await else {
+			writeError("error: file could not read: " + filepath).await
 			ret
 		}
-		mut ast, mut cm := getAST(filepath, ctx)
+		mut ast, mut cm := getAST(filepath, ctx).await
 		mut doc := builder.BuildPartial(ast, cm)
 		if doc != nil {
 			alldoc = append(alldoc, doc...)
@@ -209,38 +209,38 @@ fn docPackage(path: str) {
 	builder.DispatchMeta(alldoc)
 	bytes := docdoc(alldoc)
 	if bytes == nil {
-		writeError("error: no symbol to document: " + path)
+		writeError("error: no symbol to document: " + path).await
 		ret
 	}
-	handleOut(bytes)
+	handleOut(bytes).await
 }
 
-fn docCommand(path: str) {
+async fn docCommand(path: str) {
 	stat := os::Stat(path) else {
-		writeError("error: connot read path: " + path)
+		writeError("error: connot read path: " + path).await
 		ret
 	}
 	m := stat.Mode()
 	match {
 	| m.IsDir():
-		docPackage(path)
+		docPackage(path).await
 		ret
 	| m.IsRegular():
 		if strings::HasSuffix(path, jule::Ext) {
-			docFile(path)
+			docFile(path).await
 			ret
 		}
 	}
-	writeError("error: path is not supported: " + path)
+	writeError("error: path is not supported: " + path).await
 }
 
-fn main() {
+async fn main() {
 	mut args := os::Args()
 	args = args[1:] // Skip program path.
 	mut flag := flag::FlagSet.New()
 	flag.AddVar(_W, "write", 'w', "write result to `doc.*` file instead of stdout")
 	args = flag.Parse(args)!
 	if len(args) > 0 {
-		docCommand(args[0])
+		docCommand(args[0]).await
 	}
 }
