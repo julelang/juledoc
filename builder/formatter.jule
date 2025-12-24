@@ -492,6 +492,9 @@ impl formatter {
 		if d.Unsafe {
 			self.write("unsafe ")
 		}
+		if d.Async {
+			self.write("async ")
+		}
 		self.write("fn")
 		if !jule::IsAnon(d.Name) {
 			self.write(" ")
@@ -1511,6 +1514,9 @@ impl exprFormatter {
 		self.write("(")
 		self.args(f)
 		self.write(")")
+		if f.Await {
+			self.write(".await")
+		}
 		match f.Exception {
 		| nil:
 			// no-op
