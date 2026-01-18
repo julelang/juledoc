@@ -12,6 +12,6 @@ jobs:
         with:
           version: dev
 
-      - name: Build JuleDoc
+      - name: Build juledoc
         run: |
           julec build src

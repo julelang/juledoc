@@ -14,5 +14,5 @@ if [ $? -eq 0 ]; then
   echo "Compilation successful!"
 else
   echo "-----------------------------------------------------------------------"
-  echo "An unexpected error occurred while compiling JuleDoc. Check errors above."
+  echo "An unexpected error occurred while compiling juledoc. Check errors above."
 fi
