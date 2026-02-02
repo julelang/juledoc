@@ -19,7 +19,7 @@ impl ctxBuilder {
 		// Handle the first line with not whitespace trim.
 		// It will be trimmed if needed.
 		// This is mandatory to keep whitespaces of subscopes.
-		mut line, indent := handleDocLine(self.lines[self.i], false)
+		mut line, indent, _ := handleDocLine(self.lines[self.i], false)
 
 		// Enable whitespace trim mode if indentation is main-scope.
 		trimWS := indent == 0
@@ -34,7 +34,7 @@ impl ctxBuilder {
 
 		self.i++ // Skip current line.
 		for self.i < len(self.lines); self.i++ {
-			newLine, newIndent := handleDocLine(self.lines[self.i], trimWS)
+			newLine, newIndent, _ := handleDocLine(self.lines[self.i], trimWS)
 			// Separator.
 			if len(newLine) == 0 {
 				break
@@ -47,7 +47,7 @@ impl ctxBuilder {
 			// otherwise split lines into other doc::Text instances.
 			if indent == 0 {
 				// Line is list item. Do not append, break.
-				if newLine[0] == '-' {
+				if len(isList(newLine)) > 0 {
 					break
 				}
 				txt.WriteByte(' ')!
@@ -59,32 +59,41 @@ impl ctxBuilder {
 		ret doc::Text(txt.Str())
 	}
 
-	fn list(*self, mut line: str): doc::ListItem {
+	fn list(*self, mut line: str, mark: str): doc::ListItem {
 		mut txt := strings::Builder{}
-		txt.WriteStr(strings::TrimSpace(line[1:]))! // Add text with no list mark.
-		self.i++                                    // Skip current line.
+		listctx := line[len(mark):]                // Line with no list mark.
+		txt.WriteStr(strings::TrimSpace(listctx))! // Add text with no list mark.
+		self.i++                                   // Skip current line.
 		// If possible, concat following lines.
-		for self.i < len(self.lines) && strings::HasSuffix(line, ","); self.i++ {
-			line, _ = handleDocLine(self.lines[self.i], true)
-			// Separator or new list item.
-			if len(line) == 0 || line[0] == '-' {
+		for self.i < len(self.lines); self.i++ {
+			(line), indent, tws := handleDocLine(self.lines[self.i], true)
+			// Separator, new list item or a different node
+			// which is breaks the list.
+			if len(line) == 0 || indent < 0 && tws < 2 || len(isList(line)) > 0 {
 				break
 			}
+
 			txt.WriteByte(' ')!
 			txt.WriteStr(line)!
 		}
-		ret doc::ListItem(txt.Str())
+		ret doc::ListItem{
+			Mark: mark,
+			Text: txt.Str(),
+		}
 	}
 
 	fn next(*self): doc::Context {
 		mut ctx := doc::Context{}
 		mut line := self.lines[self.i]
-		line, ctx.Indent = handleDocLine(line, true)
+		line, ctx.Indent, _ = handleDocLine(line, true)
 		if len(line) == 0 {
 			ctx.Node = doc::Separator(true)
 			self.i++
-		} else if line[0] == '-' {
-			ctx.Node = self.list(line)
+			ret ctx
+		}
+		mark := isList(line)
+		if len(mark) > 0 {
+			ctx.Node = self.list(line, mark)
 		} else {
 			ctx.Node = self.text()
 		}
@@ -98,7 +107,7 @@ impl ctxBuilder {
 		}
 		mut i := 0
 		for i < len(self.lines); i++ {
-			line, _ := handleDocLine(self.lines[i], true)
+			line, _, _ := handleDocLine(self.lines[i], true)
 			if len(line) == 0 {
 				continue
 			}
@@ -110,7 +119,7 @@ impl ctxBuilder {
 		}
 		i = len(self.lines) - 1
 		for ; i-- {
-			line, _ := handleDocLine(self.lines[i], true)
+			line, _, _ := handleDocLine(self.lines[i], true)
 			if len(line) == 0 {
 				continue
 			}
@@ -147,16 +156,18 @@ impl ctxBuilder {
 // Removes leading spaces from doc comment and
 // returns with indentation level of line.
 // If ws true, ignores leading and trailing whitespaces.
-fn handleDocLine(mut line: str, ws: bool): (rest: str, indent: int) {
+// Returns ignored leading whitespace count as tws.
+fn handleDocLine(mut line: str, ws: bool): (rest: str, indent: int, tws: int) {
 	if len(line) == 0 {
-		ret "", 0
+		ret "", 0, 0
 	}
 	line = line[2:] // Remove comment prefix.
 	if len(line) == 0 {
-		ret line, 0
+		ret line, 0, 0
 	}
 	if line[0] == ' ' {
 		line = line[1:]
+		tws++
 	}
 	for _, r in line {
 		if r != ' ' && unicode::IsSpace(r) {
@@ -167,7 +178,39 @@ fn handleDocLine(mut line: str, ws: bool): (rest: str, indent: int) {
 	}
 	rest = line[indent:]
 	if ws {
-		rest = strings::Trim(rest, " ")
+		// Ignore whitespaces, count leading ones for tws.
+		mut i := 0
+		for i < len(rest) && rest[i] == ' ' {
+			i++
+			tws++
+		}
+		rest = rest[i:]
+		// Ignore trailing whitespaces.
+		// Use "\t" to trim mixed tabs.
+		rest = strings::Trim(rest, " \t")
 	}
 	ret
+}
+
+// Cheks line for list nodes and returns list mark string if any list node exist.
+// Otherwise returns zero-length string.
+fn isList(line: str): str {
+	if len(line) == 0 {
+		ret ""
+	}
+	if line[0] == '-' {
+		ret "-"
+	}
+	mut i := 0
+	for i < len(line); i++ {
+		b := line[i]
+		if '0' <= b && b <= '9' {
+			continue
+		} else if b == '.' && i > 0 {
+			ret line[:i+1]
+		} else {
+			break
+		}
+	}
+	ret ""
 }

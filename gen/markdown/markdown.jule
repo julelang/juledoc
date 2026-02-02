@@ -143,9 +143,10 @@ impl gen {
 						self.out.WriteStr(strings::Repeat("\t", ctx.Indent-*group))!
 					}
 				}
-				self.out.WriteStr("- ")!
-				txt := ctx.Node.(doc::ListItem)
-				writeDocText(str(txt))
+				list := ctx.Node.(doc::ListItem)
+				self.out.WriteStr(list.Mark)!
+				self.out.WriteByte(' ')!
+				writeDocText(list.Text)
 				lastIsListItem = true
 			}
 			lastIsSeparator = false
