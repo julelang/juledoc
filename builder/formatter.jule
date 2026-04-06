@@ -564,7 +564,7 @@ impl formatter {
 		mut flds := make([]&field, 0, len(fields))
 		for (_, mut f) in fields {
 			flds = append(flds, &field{
-				f: f,
+				f:     f,
 				token: f.Token,
 			})
 		}
@@ -1085,12 +1085,8 @@ impl formatter {
 					break
 				}
 			}
-			if v.X != nil {
-				self.formatExpr(v.X)
-				self.setBuf(self.ubuf()[:n])
-				if row != -1 && v.Token.Row != self.row {
-					break
-				}
+			if row != -1 && v.X != nil && v.Token.Row != v.X.End.Row {
+				break
 			}
 			counts = append(counts, [name, typ])
 		}
