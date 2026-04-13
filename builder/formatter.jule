@@ -502,7 +502,7 @@ impl formatter {
 		}
 		self.generics(d.Generics)
 		self.params(d)
-		if d.Exceptional {
+		if d.Fallible {
 			self.write("!")
 		}
 		if d.Result.Type != nil {
@@ -1580,7 +1580,7 @@ impl exprFormatter {
 		if f.Await {
 			self.write(".await")
 		}
-		match f.Exception {
+		match f.Handler {
 		| nil:
 			// no-op
 		| ast::Ignored:
@@ -1589,7 +1589,7 @@ impl exprFormatter {
 			self.write("?")
 		|:
 			self.write(" else { ... }")
-			self.fmt.row = f.Exception.End.Row
+			self.fmt.row = f.Handler.End.Row
 		}
 	}
 
