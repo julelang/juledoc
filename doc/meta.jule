@@ -9,6 +9,6 @@ enum Meta: type {
 
 // Metadata for struct.
 struct MetaStruct {
-	Traits:  []str
+	Traits:  []string
 	Methods: []&Doc
 }

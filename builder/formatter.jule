@@ -29,12 +29,12 @@ struct rowAlign {
 
 struct formatter {
 	indentLen: int
-	indentStr: str
+	indentStr: string
 
 	mut i:          int
 	mut buf:        strings::Builder
 	mut f:          &ast::AST
-	mut atomIndent: str    // Single indentation
+	mut atomIndent: string // Single indentation
 	mut indent:     []byte // Whole indentation based on the current indentation level
 	mut cm:         &CommentMap
 	mut row:        int
@@ -49,19 +49,19 @@ impl formatter {
 		fmt.indentLen = 1
 		fmt.indentStr = "\t"
 		fmt.atomIndent = strings::Repeat(fmt.indentStr, fmt.indentLen)
-		ret fmt
+		return fmt
 	}
 
 	fn ubuf(*self): []byte {
-		ret unsafe { self.buf.Buf() }
+		return unsafe { self.buf.Buf() }
 	}
 
 	fn setBuf(*self, mut b: []byte) {
 		unsafe { self.buf.SetBuf(b) }
 	}
 
-	fn write(&self, s: str) {
-		self.buf.WriteStr(s)!
+	fn write(&self, s: string) {
+		self.buf.WriteString(s)!
 	}
 
 	fn addIndent(&self) {
@@ -76,7 +76,7 @@ impl formatter {
 		if len(self.indent) > 0 && c.txt[1] == '*' {
 			// Range comment should be checked.
 			// Ending is should be padded by indentation.
-			mut i := utf8::RuneCountStr(c.txt) - 3
+			mut i := utf8::RuneCountString(c.txt) - 3
 		lookup:
 			for i > 1; i-- {
 				b := c.txt[i]
@@ -89,7 +89,7 @@ impl formatter {
 					self.write(cmt)
 					self.buf.Write(self.indent)!
 					self.write("*/")
-					ret
+					return
 				|:
 					break lookup
 				}
@@ -98,7 +98,7 @@ impl formatter {
 		if c.txt[1] == '/' {
 			// Single-line comment, trim trailing spaces before writing.
 			self.write(strings::TrimRightFunc(c.txt, unicode::IsSpace))
-			ret
+			return
 		}
 		self.write(c.txt)
 	}
@@ -108,9 +108,9 @@ impl formatter {
 			if row != -1 && c.row >= row {
 				break
 			}
-			ret c
+			return c
 		}
-		ret nil
+		return nil
 	}
 
 	fn writeCommentsExceptL(&self, start: int, row: int, pad: bool, buf: bool): int {
@@ -140,25 +140,25 @@ impl formatter {
 				self.write("\n")
 			}
 		}
-		ret lrow
+		return lrow
 	}
 
 	fn writeCommentsExcept(&self, row: int, buf: bool): int {
 		const Pad = true
-		ret self.writeCommentsExceptL(-1, row, Pad, buf)
+		return self.writeCommentsExceptL(-1, row, Pad, buf)
 	}
 
 	fn writeComments(&self, row: int, buf: bool): int {
-		ret self.writeCommentsExcept(row+1, buf)
+		return self.writeCommentsExcept(row+1, buf)
 	}
 
 	fn addGlobalPaddingForComment(&self, row: int): bool {
 		c := self.cm.first(row)
 		if c != nil && c.row-self.row > 1 {
 			self.write("\n")
-			ret true
+			return true
 		}
-		ret false
+		return false
 	}
 
 	fn isPopsRowCommentsByF(*self, row: int, col: int): bool {
@@ -166,12 +166,12 @@ impl formatter {
 		for i < len(self.cm.buf); i++ {
 			c := self.cm.buf[i]
 			if c.row == row && (col == -1 || c.col < col) {
-				ret true
+				return true
 			} else if c.row > row {
-				ret false
+				return false
 			}
 		}
-		ret false
+		return false
 	}
 
 	fn popRowCommentsUntilByF(&self, row: int, col: int, buf: bool, f: fn(&comment)) {
@@ -263,7 +263,7 @@ impl formatter {
 
 	fn directives(&self, dvs: []&ast::Directive) {
 		if len(dvs) == 0 {
-			ret
+			return
 		}
 		first := dvs[0]
 		if first.Tag.Row-self.writeCommentsExcept(first.Tag.Row, true) > 1 {
@@ -283,7 +283,7 @@ impl formatter {
 
 	fn generics(&self, mut g: []&ast::Generic) {
 		if len(g) == 0 {
-			ret
+			return
 		}
 		self.write("[")
 		for (i, mut t) in g {
@@ -377,7 +377,7 @@ impl formatter {
 		if len(f.Params) == 0 {
 			self.write(open)
 			self.write(close)
-			ret
+			return
 		}
 		self.write(open)
 		mut indented := false
@@ -444,22 +444,22 @@ impl formatter {
 		self.write(close)
 	}
 
-	fn result(&self, mut r: &ast::RetType) {
+	fn result(&self, mut r: &ast::ReturnType) {
 		if len(r.Names) == 0 {
 			self.formatType(r.Type)
-			ret
+			return
 		}
 		if len(r.Names) == 1 {
 			if jule::IsBlank(r.Names[0].Kind) {
 				self.formatType(r.Type)
-				ret
+				return
 			}
 			self.write("(")
 			self.write(r.Names[0].Kind)
 			self.write(": ")
 			self.formatType(r.Type)
 			self.write(")")
-			ret
+			return
 		}
 		mut types := r.Type.Data.(&ast::TupleExpr).X
 		self.write("(")
@@ -540,7 +540,7 @@ impl formatter {
 			fieldMax -= 4
 		}
 		self.write(f.f.Name)
-		fieldMax -= utf8::RuneCountStr(f.f.Name)
+		fieldMax -= utf8::RuneCountString(f.f.Name)
 		self.write(": ")
 		if fieldMax > 0 {
 			self.write(strings::Repeat(" ", fieldMax))
@@ -559,7 +559,7 @@ impl formatter {
 
 	fn fields(&self, mut fields: []&ast::Field) {
 		if len(fields) == 0 {
-			ret
+			return
 		}
 		mut flds := make([]&field, 0, len(fields))
 		for (_, mut f) in fields {
@@ -605,7 +605,7 @@ impl formatter {
 		if len(d.Fields) == 0 {
 			self.write("{}")
 			self.popRowComments(d.End.Row, false)
-			ret
+			return
 		}
 		self.write(" {\n")
 		self.addIndent()
@@ -624,7 +624,7 @@ impl formatter {
 		if len(d.Methods) == 0 && len(d.Inherits) == 0 {
 			self.write("{}")
 			self.popRowComments(d.End.Row, false)
-			ret
+			return
 		}
 		self.write(" {")
 		self.addIndent()
@@ -757,7 +757,7 @@ impl formatter {
 				self.write("&")
 			}
 		}
-		nameLen := utf8::RuneCountStr(d.Name)
+		nameLen := utf8::RuneCountString(d.Name)
 		self.write(d.Name)
 		self.row = d.Token.Row
 		mut typ := 0 // rendered rune width of the formatted type (if present)
@@ -841,10 +841,10 @@ impl formatter {
 
 	fn getMax(*self, lines: [][]byte, rows: []int, comments: [][]&comment): (max: int, n: int) {
 		if len(lines) == 0 || len(rows) == 0 {
-			ret 0, 0
+			return 0, 0
 		}
 		if len(comments[0]) == 0 {
-			ret
+			return
 		}
 		max = utf8::RuneCount(lines[0])
 		n = 1
@@ -857,7 +857,7 @@ impl formatter {
 				max = diff
 			}
 		}
-		ret
+		return
 	}
 
 	// Reports whether all fields is actually written.
@@ -884,7 +884,7 @@ impl formatter {
 			if decl.f.Mutable {
 				fm += len("mut ")
 			}
-			fm += utf8::RuneCountStr(decl.f.Name)
+			fm += utf8::RuneCountString(decl.f.Name)
 			self.formatType(decl.f.Type)
 			tm := utf8::RuneCount(self.ubuf()[n:])
 			self.setBuf(self.ubuf()[:n])
@@ -957,7 +957,7 @@ impl formatter {
 			}
 		}
 
-		ret
+		return
 	}
 
 	fn varSubGroup(&self, mut vars: []&ast::Var, mut &i: *int) {
@@ -996,7 +996,7 @@ impl formatter {
 					break
 				}
 			}
-			ret
+			return
 		}
 
 		// Returns maximum length of assignment alignment.
@@ -1059,7 +1059,7 @@ impl formatter {
 				nameMax = maxPlainName
 				nameMaxHaveType = 0
 			}
-			ret
+			return
 		}
 
 		self.row = -1
@@ -1075,7 +1075,7 @@ impl formatter {
 				break
 			}
 			self.row = v.Token.Row
-			mut name := utf8::RuneCountStr(v.Name)
+			mut name := utf8::RuneCountString(v.Name)
 			mut typ := 0
 			if v.Type != nil {
 				self.formatType(v.Type)
@@ -1177,7 +1177,7 @@ impl formatter {
 
 	fn groupDecls[T, Node](&self, mut nodes: []Node, mut &i: *int, writer: fn(mut d: T)) {
 		if len(nodes) == 0 {
-			ret
+			return
 		}
 
 		// If group declaration used, fall-back to special group handling.
@@ -1187,20 +1187,20 @@ impl formatter {
 			| &ast::Var:
 				if nodes[i].Group != nil {
 					self.varGroup(nodes[*i])
-					ret
+					return
 				}
 			| ast::Node | ast::Stmt:
 				mut v, ok := nodes[*i].Data.(T)
 				if ok && v.Group != nil {
 					self.varGroup(v)
-					ret
+					return
 				}
 			}
 		| ast::Node | ast::Stmt:
 			mut v, ok := nodes[*i].Data.(&ast::Var)
 			if ok && v.Group != nil {
 				self.varGroup(v)
-				ret
+				return
 			}
 		}
 
@@ -1298,7 +1298,7 @@ impl formatter {
 			mut d := node.Data.(&ast::TypeAlias)
 			self.writeCommentsExcept(d.Token.Row, true)
 			self.typeAliasDecl(d)
-			ret
+			return
 		| &ast::Var:
 			mut d := node.Data.(&ast::Var)
 			if len(d.Directives) > 0 {
@@ -1311,7 +1311,7 @@ impl formatter {
 			} else {
 				self.varDecl(d, true, [])
 			}
-			ret
+			return
 		| &ast::Func:
 			mut d := node.Data.(&ast::Func)
 			if len(d.Directives) > 0 {
@@ -1320,7 +1320,7 @@ impl formatter {
 				self.writeCommentsExcept(d.Token.Row, true)
 			}
 			self.fnDecl(d)
-			ret
+			return
 		| &ast::Struct:
 			mut d := node.Data.(&ast::Struct)
 			if len(d.Directives) > 0 {
@@ -1366,11 +1366,11 @@ impl exprFormatter {
 		ef.bf = &binaryFormatter{
 			ef: ef,
 		}
-		ret ef
+		return ef
 	}
 
-	fn write(&self, s: str) {
-		self.fmt.buf.WriteStr(s)!
+	fn write(&self, s: string) {
+		self.fmt.buf.WriteString(s)!
 	}
 
 	fn clean(&self) {
@@ -1455,7 +1455,7 @@ impl exprFormatter {
 	fn unary(&self, mut u: &ast::UnaryExpr) {
 		if u.IsUnsafePtr() {
 			self.write("*unsafe")
-			ret
+			return
 		}
 		self.write(u.Op.Kind)
 		self.format(u.X)
@@ -1498,7 +1498,7 @@ impl exprFormatter {
 
 	fn args(&self, mut f: &ast::CallExpr) {
 		if len(f.Args) == 0 {
-			ret
+			return
 		}
 
 		// Save the indentation for the SubIdentExpr.
@@ -1730,7 +1730,7 @@ impl exprFormatter {
 
 	fn format(&self, mut expr: &ast::Expr) {
 		if expr == nil {
-			ret
+			return
 		}
 		self.fmt.row = expr.Token.Row
 		self.formatKind(expr.Data)
@@ -1749,7 +1749,7 @@ struct binaryFormatter {
 impl binaryFormatter {
 	// Reports whether operator should take space for formatting.
 	fn isOp(op: int): bool {
-		ret op == token::LOR ||
+		return op == token::LOR ||
 			op == token::LAND ||
 			op == token::GTR ||
 			op == token::LSS ||
@@ -1769,19 +1769,19 @@ impl binaryFormatter {
 		| token::QUO
 		| token::REM
 		| token::AND:
-			ret 1
+			return 1
 		|:
-			ret 0
+			return 0
 		}
 	}
 
 	// Reports whether operator zips operands.
 	fn isHardZipOp(op: int): bool {
-		ret op == token::LOR ||
+		return op == token::LOR ||
 			op == token::LAND
 	}
 
-	fn write(&self, s: str) {
+	fn write(&self, s: string) {
 		self.ef.write(s)
 	}
 
@@ -1796,20 +1796,20 @@ impl binaryFormatter {
 	fn writeSpace(&self) {
 		if self.op {
 			self.write(" ")
-			ret
+			return
 		}
 		// operator is not op
 
 		if self.zip {
 			// zip mode on following detection is disallowed
-			ret
+			return
 		}
 		// zip mode is off
 
 		if !self.prec {
 			// prec mode is off
 			self.write(" ")
-			ret
+			return
 		}
 		// prec mode is on
 
@@ -1835,7 +1835,7 @@ impl binaryFormatter {
 			self.writeSpace()
 			self.ef.fmt.popRowCommentsByC(self.bin.Y.Token.Row, self.bin.Y.Token.Column, false)
 			self.format(self.bin.Y)
-			ret
+			return
 		}
 		self.ef.fmt.addIndent()
 		self.ef.fmt.popRowCommentsBy(self.bin.Op.Row, false)
@@ -1864,11 +1864,11 @@ impl binaryFormatter {
 		| &ast::BinaryExpr:
 			mut bin := kind.(&ast::BinaryExpr)
 			if binaryFormatter.isHardZipOp(bin.Op.ID) {
-				ret true
+				return true
 			}
-			ret self.isZip(bin.X.Data) || self.isZip(bin.Y.Data)
+			return self.isZip(bin.X.Data) || self.isZip(bin.Y.Data)
 		|:
-			ret false
+			return false
 		}
 	}
 
@@ -1877,35 +1877,35 @@ impl binaryFormatter {
 		| &ast::BinaryExpr:
 			bin := kind.(&ast::BinaryExpr)
 			if first != binaryFormatter.opPrec(bin.Op.ID) {
-				ret -1
+				return -1
 			}
 			mut prec := self.isPrec(first, bin.X.Data)
 			if first != prec {
-				ret -1
+				return -1
 			}
 			prec = self.isPrec(first, bin.Y.Data)
 			if first != prec {
-				ret -1
+				return -1
 			}
-			ret first
+			return first
 		|:
-			ret first
+			return first
 		}
 	}
 
 	fn new(&self, mut bin: &ast::BinaryExpr) {
 		if self.zip {
-			ret
+			return
 		}
 		// detect zip
 		if binaryFormatter.isOp(bin.Op.ID) {
 			self.zip = true
-			ret
+			return
 		}
 		self.zip = self.isZip(bin.X.Data) || self.isZip(bin.Y.Data)
 		if self.zip {
 			// skip if zipped, no need to detect following
-			ret
+			return
 		}
 
 		// detect prec
@@ -1920,7 +1920,7 @@ impl binaryFormatter {
 	// It designed for binary expressions operands only.
 	fn format(&self, mut expr: &ast::Expr) {
 		if expr == nil {
-			ret
+			return
 		}
 
 		// store state of internal data
@@ -1957,14 +1957,14 @@ impl binaryFormatter {
 
 fn paddingAbs(x: int): int {
 	if x < 0 {
-		ret 0
+		return 0
 	}
-	ret x
+	return x
 }
 
 fn isPrimType(t: &ast::Expr): bool {
 	name, ok := t.Data.(&ast::NameExpr)
-	ret ok && name.Name == types::I8 ||
+	return ok && name.Name == types::I8 ||
 		name.Name == types::I16 ||
 		name.Name == types::I32 ||
 		name.Name == types::I64 ||
@@ -1978,34 +1978,34 @@ fn isPrimType(t: &ast::Expr): bool {
 		name.Name == types::F32 ||
 		name.Name == types::F64 ||
 		name.Name == types::Bool ||
-		name.Name == types::Str ||
+		name.Name == types::String ||
 		name.Name == types::Any
 }
 
 fn isRanged(e: &ast::Expr): bool {
 	if e == nil {
-		ret false
+		return false
 	}
 	_, ok := e.Data.(&ast::RangeExpr)
-	ret ok
+	return ok
 }
 
 fn cloneBuf(b: []byte): []byte {
 	mut rb := make([]byte, len(b))
 	copy(rb, b)
-	ret rb
+	return rb
 }
 
 fn indexRowBrake(rows: []int): int {
 	for i, r in rows {
 		if i > 0 && r-rows[i-1] > 1 {
-			ret i
+			return i
 		}
 	}
-	ret len(rows)
+	return len(rows)
 }
 
 fn isParentNeededForCall(expr: &ast::Expr): bool {
 	f, _ := expr.Data.(&ast::Func)
-	ret f != nil && f.IsDecl()
+	return f != nil && f.IsDecl()
 }

@@ -20,15 +20,15 @@ use "std/strings"
 
 let mut _W = new(bool, false) // Flag -w
 
-async fn writeError(message: str) {
-	os::Stderr().WriteStr(message).await!
-	os::Stderr().WriteStr("\n").await!
+async fn writeError(message: string) {
+	os::Stderr().WriteString(message).await!
+	os::Stderr().WriteString("\n").await!
 }
 
 // Derived from the "std/jule/importer", stay up to date.
 // Reports whether the arg is exist is distos.
-fn checkOs(arg: str): (exist: bool) {
-	ret arg == dist::Windows ||
+fn checkOs(arg: string): (exist: bool) {
+	return arg == dist::Windows ||
 		arg == dist::Darwin ||
 		arg == dist::Linux ||
 		arg == dist::Unix
@@ -36,8 +36,8 @@ fn checkOs(arg: str): (exist: bool) {
 
 // Derived from the "std/jule/importer", stay up to date.
 // Reports whether the arg is exist is distarch.
-fn checkArch(arg: str): (exist: bool) {
-	ret arg == dist::I386 ||
+fn checkArch(arg: string): (exist: bool) {
+	return arg == dist::I386 ||
 		arg == dist::AMD64 ||
 		arg == dist::ARM64 ||
 		arg == dist::X64 ||
@@ -46,13 +46,13 @@ fn checkArch(arg: str): (exist: bool) {
 
 // Derived from the "std/jule/importer", stay up to date.
 // Reports whether path is not including any annotation.
-fn isPassFileAnnotation(mut p: str): bool {
+fn isPassFileAnnotation(mut p: string): bool {
 	p = filepath::Base(p)
 	n := len(p)
 	p = p[:n-len(filepath::Ext(p))]
 
 	if strings::HasSuffix(p, "_test") {
-		ret false
+		return false
 	}
 
 	// a1 is the second annotation.
@@ -69,12 +69,12 @@ fn isPassFileAnnotation(mut p: str): bool {
 		// Check file name directly if not exist any _ character.
 		exist := checkOs(p)
 		if exist {
-			ret false
+			return false
 		}
-		ret !checkArch(p)
+		return !checkArch(p)
 	}
 	if i+1 >= n {
-		ret true
+		return true
 	}
 	a1 = p[i+1:]
 
@@ -89,81 +89,81 @@ fn isPassFileAnnotation(mut p: str): bool {
 	if a2 == "" {
 		exist := checkOs(a1)
 		if exist {
-			ret false
+			return false
 		}
-		ret !checkArch(a1)
+		return !checkArch(a1)
 	}
 
 	exist := checkArch(a1)
 	if exist {
-		ret false
+		return false
 	}
 
 	// a1 is not architecture, for this reason bad couple pattern.
 	// Accept as one pattern, so a1 can be platform.
-	ret !checkOs(a1)
+	return !checkOs(a1)
 }
 
 fn containsBuildDirective(ast: &ast::AST): bool {
 	for _, d in ast.TopDirectives {
 		if d.Tag.Kind == directive::Build {
-			ret true
+			return true
 		}
 	}
-	ret false
+	return false
 }
 
-async fn getAST(path: str, mut data: []byte): (&ast::AST, &builder::CommentMap) {
+async fn getAST(path: string, mut data: []byte): (&ast::AST, &builder::CommentMap) {
 	mut file := token::FileSet.New(path)
 	unsafe { file.FillMut(data) }
 	mut errors := token::ScanAll(file, token::Comments)
 	if len(errors) > 0 {
 		writeError("error: file could not formatted, have error(s): " + path).await
-		ret nil, nil
+		return nil, nil
 	}
 
 	mut cm := builder::BuildCommentMap(&file.Tokens)
 	mut finfo := parser::ParseFile(file)
 	if len(finfo.Errors) > 0 {
 		writeError("error: file could not formatted, have error(s): " + path).await
-		ret nil, nil
+		return nil, nil
 	}
 	if containsBuildDirective(finfo.AST) {
-		ret nil, nil
+		return nil, nil
 	}
-	ret finfo.AST, cm
+	return finfo.AST, cm
 }
 
 fn docdoc(mut doc: []&doc::Doc): []byte {
 	if len(doc) == 0 {
-		ret nil
+		return nil
 	}
-	ret markdown::Gen(doc)
+	return markdown::Gen(doc)
 }
 
-async fn saveFile(path: str, ctx: []byte) {
+async fn saveFile(path: string, ctx: []byte) {
 	os::WriteFile(path, ctx, 0o660).await else {
 		writeError("error: could not write to file: " + path).await
-		ret
+		return
 	}
 }
 
 async fn handleOut(ctx: []byte) {
 	if *_W {
 		saveFile("doc.md", ctx).await
-		ret
+		return
 	}
 	os::Stdout().Write(ctx).await!
 }
 
-async fn docFile(path: str) {
+async fn docFile(path: string) {
 	if !isPassFileAnnotation(path) {
 		writeError("error: no symbol to document: " + path).await
-		ret
+		return
 	}
 	mut ctx := os::ReadFile(path).await else {
 		writeError("error: file could not read: " + path).await
-		ret
+		return
 	}
 	mut ast, mut cm := getAST(path, ctx).await
 	mut doc := builder::New().Build(ast, cm)
@@ -174,10 +174,10 @@ async fn docFile(path: str) {
 	handleOut(bytes).await
 }
 
-async fn docPackage(path: str) {
+async fn docPackage(path: string) {
 	mut dirents := os::ReadDir(path) else {
 		writeError("error: connot read package directory: " + path).await
-		ret
+		return
 	}
 	// Sort directories by name to handle them in
 	// the same order on every possible system.
@@ -198,7 +198,7 @@ async fn docPackage(path: str) {
 		filepath := filepath::Join(path, dirent.Name)
 		mut ctx := os::ReadFile(filepath).await else {
 			writeError("error: file could not read: " + filepath).await
-			ret
+			return
 		}
 		mut ast, mut cm := getAST(filepath, ctx).await
 		mut doc := builder.BuildPartial(ast, cm)
@@ -210,25 +210,25 @@ async fn docPackage(path: str) {
 	bytes := docdoc(alldoc)
 	if bytes == nil {
 		writeError("error: no symbol to document: " + path).await
-		ret
+		return
 	}
 	handleOut(bytes).await
 }
 
-async fn docCommand(path: str) {
+async fn docCommand(path: string) {
 	stat := os::Stat(path) else {
 		writeError("error: connot read path: " + path).await
-		ret
+		return
 	}
 	m := stat.Mode()
 	match {
 	| m.IsDir():
 		docPackage(path).await
-		ret
+		return
 	| m.IsRegular():
 		if strings::HasSuffix(path, jule::Ext) {
 			docFile(path).await
-			ret
+			return
 		}
 	}
 	writeError("error: path is not supported: " + path).await

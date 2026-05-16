@@ -48,7 +48,7 @@ let jmpReplacer = strings::Replacer.New("\n", " ", "\t", "")
 // Generates Markdown documentation from documentation data.
 struct gen {
 	jmp:  strings::Builder // Jump table (aka contents list).
-	jmpc: map[str]int      // Counter for jump table contents.
+	jmpc: map[string]int   // Counter for jump table contents.
 	out:  strings::Builder // Whole page.
 }
 
@@ -61,20 +61,20 @@ impl gen {
 		// Writes text do documentation content.
 		// This function should be used for source code comments and other
 		// risky texts. This function handles risky characters.
-		writeDocText := fn(mut s: str) {
+		writeDocText := fn(mut s: string) {
 			// If group comments is not active, handle risky HTML characters.
 			if *group == 0 {
 				s = markdownEscaper.Replace(s)
 			}
-			self.out.WriteStr(s)!
+			self.out.WriteString(s)!
 		}
 		for i, ctx in doc.Ctx {
 			match type ctx.Node {
 			| doc::Separator:
 				if *group != 0 {
-					self.out.WriteStr("\n")!
+					self.out.WriteString("\n")!
 				} else {
-					self.out.WriteStr("\n\n")!
+					self.out.WriteString("\n\n")!
 					indent = 0
 				}
 				lastIsListItem = false
@@ -86,9 +86,9 @@ impl gen {
 				if *group == 0 && i > 0 && !lastIsSeparator {
 					if indent != ctx.Indent {
 						if lastIsListItem {
-							self.out.WriteStr("\n\n")!
+							self.out.WriteString("\n\n")!
 						} else {
-							self.out.WriteStr("<br>\n")!
+							self.out.WriteString("<br>\n")!
 						}
 					} else {
 						self.out.WriteByte(' ')!
@@ -96,7 +96,7 @@ impl gen {
 				}
 				if *group == 0 && ctx.Indent > 0 {
 					*group = ctx.Indent
-					self.out.WriteStr("```\n")!
+					self.out.WriteString("```\n")!
 				} else if *group != 0 {
 					// Indentation is lower than group indentation.
 					// This is end fo the group.
@@ -108,22 +108,22 @@ impl gen {
 						if !lastIsSeparator {
 							self.out.WriteByte('\n')!
 						}
-						self.out.WriteStr("```\n")!
+						self.out.WriteString("```\n")!
 						*group = 0
 					} else {
-						self.out.WriteStr("\n")!
-						self.out.WriteStr(strings::Repeat("\t", ctx.Indent-*group))!
+						self.out.WriteString("\n")!
+						self.out.WriteString(strings::Repeat("\t", ctx.Indent-*group))!
 					}
 				}
 				txt := ctx.Node.(doc::Text)
-				writeDocText(str(txt))
+				writeDocText(string(txt))
 				lastIsListItem = false
 			| doc::ListItem:
 				if *group == 0 && i > 0 && !lastIsSeparator {
 					if lastIsListItem {
 						self.out.WriteByte('\n')!
 					} else {
-						self.out.WriteStr("<br>\n\n")!
+						self.out.WriteString("<br>\n\n")!
 					}
 				} else if *group != 0 {
 					// Indentation is lower than group indentation.
@@ -136,15 +136,15 @@ impl gen {
 						if !lastIsSeparator {
 							self.out.WriteByte('\n')!
 						}
-						self.out.WriteStr("```\n")!
+						self.out.WriteString("```\n")!
 						*group = 0
 					} else {
-						self.out.WriteStr("\n")!
-						self.out.WriteStr(strings::Repeat("\t", ctx.Indent-*group))!
+						self.out.WriteString("\n")!
+						self.out.WriteString(strings::Repeat("\t", ctx.Indent-*group))!
 					}
 				}
 				list := ctx.Node.(doc::ListItem)
-				self.out.WriteStr(list.Mark)!
+				self.out.WriteString(list.Mark)!
 				self.out.WriteByte(' ')!
 				writeDocText(list.Text)
 				lastIsListItem = true
@@ -154,74 +154,74 @@ impl gen {
 		}
 		// Close remaining group.
 		if *group != 0 {
-			self.out.WriteStr("\n```\n")!
+			self.out.WriteString("\n```\n")!
 		}
 	}
 
 	// Generates jmp item by doc and indent.
 	fn pushJmp(mut &self, doc: &doc::Doc, indent: int) {
 		// Returns s as index table name.
-		jmpName := fn(s: str): str {
-			ret jmpReplacer.Replace(markdownEscaper.Replace(strings::TrimSpace(s)))
+		jmpName := fn(s: string): string {
+			return jmpReplacer.Replace(markdownEscaper.Replace(strings::TrimSpace(s)))
 		}
 		// Jump table have content. Add new-line.
 		// Otherwise add the index title.
 		if self.jmp.Len() > 0 {
-			self.jmp.WriteStr("\\\n")!
+			self.jmp.WriteString("\\\n")!
 		} else {
-			self.jmp.WriteStr("## Index\n\n")!
+			self.jmp.WriteString("## Index\n\n")!
 		}
 		// Write indentation.
-		self.jmp.WriteStr(strings::Repeat(space, spacePerIndent*indent))!
+		self.jmp.WriteString(strings::Repeat(space, spacePerIndent*indent))!
 		// Write context from code.
 		self.jmp.WriteByte('[')!
 		if doc.Code == "" {
-			self.jmp.WriteStr(doc.Name)!
+			self.jmp.WriteString(doc.Name)!
 		} else {
 			match doc.Owner {
 			| doc::Var:
 				i := strings::IndexAny(doc.Code, ":=")
-				self.jmp.WriteStr(jmpName(doc.Code[:i]))!
+				self.jmp.WriteString(jmpName(doc.Code[:i]))!
 			| doc::Func:
 				// Start writing from fn keyword to avoid directives in jumptable.
 				i := strings::Index(doc.Code, "fn ")
-				self.jmp.WriteStr(jmpName(doc.Code[i:]))!
+				self.jmp.WriteString(jmpName(doc.Code[i:]))!
 			| doc::Struct:
 				// Start writing from struct keyword to avoid directives in jumptable.
 				i := strings::Index(doc.Code, "struct ")
 				// Limit writing with the '{' token to avoid body of struct.
 				j := strings::IndexByte(doc.Code, '{')
-				self.jmp.WriteStr(jmpName(doc.Code[i:j]))!
+				self.jmp.WriteString(jmpName(doc.Code[i:j]))!
 			| doc::Trait:
-				self.jmp.WriteStr("trait ")!
-				self.jmp.WriteStr(jmpName(doc.Name))!
+				self.jmp.WriteString("trait ")!
+				self.jmp.WriteString(jmpName(doc.Name))!
 			| doc::Enum:
-				self.jmp.WriteStr("enum ")!
-				self.jmp.WriteStr(jmpName(doc.Name))!
+				self.jmp.WriteString("enum ")!
+				self.jmp.WriteString(jmpName(doc.Name))!
 			| doc::TypeEnum:
-				self.jmp.WriteStr("enum ")!
-				self.jmp.WriteStr(jmpName(doc.Name))!
-				self.jmp.WriteStr(": type ")!
+				self.jmp.WriteString("enum ")!
+				self.jmp.WriteString(jmpName(doc.Name))!
+				self.jmp.WriteString(": type ")!
 			| doc::TypeAlias:
 				i := strings::IndexByte(doc.Code, '=')
-				self.jmp.WriteStr(jmpName(doc.Code[:i]))!
+				self.jmp.WriteString(jmpName(doc.Code[:i]))!
 			| doc::StrictTypeAlias:
 				i := strings::IndexByte(doc.Code, ':')
-				self.jmp.WriteStr(jmpName(doc.Code[:i]))!
+				self.jmp.WriteString(jmpName(doc.Code[:i]))!
 			}
 		}
 		self.jmp.WriteByte(']')!
 		// Write link.
-		self.jmp.WriteStr("(#")!
-		self.jmp.WriteStr(idEscaper.Replace(strings::ToLower(doc.Name)))!
+		self.jmp.WriteString("(#")!
+		self.jmp.WriteString(idEscaper.Replace(strings::ToLower(doc.Name)))!
 		n, ok := self.jmpc[doc.Name]
 		self.jmpc[doc.Name] = n + 1
 		// If this content exist already, write count.
 		if ok && n > 0 {
 			self.jmp.WriteByte('-')!
-			self.jmp.WriteStr(conv::Itoa(n))!
+			self.jmp.WriteString(conv::Itoa(n))!
 		}
-		self.jmp.WriteStr(")")!
+		self.jmp.WriteString(")")!
 	}
 
 	fn vars(mut &self, mut doc: []&doc::Doc) {
@@ -231,7 +231,7 @@ impl gen {
 				continue
 			}
 			if !header {
-				self.out.WriteStr("## Variables\n")!
+				self.out.WriteString("## Variables\n")!
 				code := node.Code
 				node.Code = ""
 				node.Name = "Variables"
@@ -239,11 +239,11 @@ impl gen {
 				node.Code = code
 				header = true
 			} else {
-				self.out.WriteStr("\n\n---\n")!
+				self.out.WriteString("\n\n---\n")!
 			}
-			self.out.WriteStr("\n```jule\n")!
-			self.out.WriteStr(node.Code)!
-			self.out.WriteStr("\n```\n")!
+			self.out.WriteString("\n```jule\n")!
+			self.out.WriteString(node.Code)!
+			self.out.WriteString("\n```\n")!
 			self.gendoc(node)
 		}
 	}
@@ -253,13 +253,13 @@ impl gen {
 			if node.Owner != doc::Func {
 				continue
 			}
-			self.out.WriteStr("\n\n")!
+			self.out.WriteString("\n\n")!
 			self.pushJmp(node, 0)
-			self.out.WriteStr("## ")!
-			self.out.WriteStr(node.Name)!
-			self.out.WriteStr("\n```jule\n")!
-			self.out.WriteStr(node.Code)!
-			self.out.WriteStr("\n```\n")!
+			self.out.WriteString("## ")!
+			self.out.WriteString(node.Name)!
+			self.out.WriteString("\n```jule\n")!
+			self.out.WriteString(node.Code)!
+			self.out.WriteString("\n```\n")!
 			self.gendoc(node)
 		}
 	}
@@ -269,13 +269,13 @@ impl gen {
 			if node.Owner != doc::TypeAlias {
 				continue
 			}
-			self.out.WriteStr("\n\n")!
+			self.out.WriteString("\n\n")!
 			self.pushJmp(node, 0)
-			self.out.WriteStr("## ")!
-			self.out.WriteStr(node.Name)!
-			self.out.WriteStr("\n```jule\n")!
-			self.out.WriteStr(node.Code)!
-			self.out.WriteStr("\n```\n")!
+			self.out.WriteString("## ")!
+			self.out.WriteString(node.Name)!
+			self.out.WriteString("\n```jule\n")!
+			self.out.WriteString(node.Code)!
+			self.out.WriteString("\n```\n")!
 			self.gendoc(node)
 		}
 	}
@@ -285,13 +285,13 @@ impl gen {
 			if node.Owner != doc::Trait {
 				continue
 			}
-			self.out.WriteStr("\n\n")!
+			self.out.WriteString("\n\n")!
 			self.pushJmp(node, 0)
-			self.out.WriteStr("## ")!
-			self.out.WriteStr(node.Name)!
-			self.out.WriteStr("\n```jule\n")!
-			self.out.WriteStr(node.Code)!
-			self.out.WriteStr("\n```\n")!
+			self.out.WriteString("## ")!
+			self.out.WriteString(node.Name)!
+			self.out.WriteString("\n```jule\n")!
+			self.out.WriteString(node.Code)!
+			self.out.WriteString("\n```\n")!
 			self.gendoc(node)
 		}
 	}
@@ -302,13 +302,13 @@ impl gen {
 				if _static != strings::HasPrefix(node.Code, "static ") {
 					continue
 				}
-				self.out.WriteStr("\n\n")!
+				self.out.WriteString("\n\n")!
 				self.pushJmp(node, 1)
-				self.out.WriteStr("### ")!
-				self.out.WriteStr(node.Name)!
-				self.out.WriteStr("\n```jule\n")!
-				self.out.WriteStr(node.Code)!
-				self.out.WriteStr("\n```\n")!
+				self.out.WriteString("### ")!
+				self.out.WriteString(node.Name)!
+				self.out.WriteString("\n```jule\n")!
+				self.out.WriteString(node.Code)!
+				self.out.WriteString("\n```\n")!
 				self.gendoc(node)
 			}
 		}
@@ -316,21 +316,21 @@ impl gen {
 		iter(false)
 	}
 
-	fn implTraits(mut &self, traits: []str) {
+	fn implTraits(mut &self, traits: []string) {
 		if len(traits) == 0 {
-			ret
+			return
 		}
-		self.out.WriteStr("\n\n### Implemented Traits\n")!
+		self.out.WriteString("\n\n### Implemented Traits\n")!
 		for _, t in traits {
-			self.out.WriteStr("\n- `")!
-			self.out.WriteStr(t)!
+			self.out.WriteString("\n- `")!
+			self.out.WriteString(t)!
 			self.out.WriteByte('`')!
 		}
 	}
 
 	fn handleStructMeta(mut &self, doc: &doc::Doc) {
 		if doc.Meta == nil {
-			ret
+			return
 		}
 		meta := doc.Meta.(&doc::MetaStruct)
 		self.implTraits(meta.Traits)
@@ -342,13 +342,13 @@ impl gen {
 			if node.Owner != doc::Struct && node.Owner != doc::StrictTypeAlias {
 				continue
 			}
-			self.out.WriteStr("\n\n")!
+			self.out.WriteString("\n\n")!
 			self.pushJmp(node, 0)
-			self.out.WriteStr("## ")!
-			self.out.WriteStr(node.Name)!
-			self.out.WriteStr("\n```jule\n")!
-			self.out.WriteStr(node.Code)!
-			self.out.WriteStr("\n```\n")!
+			self.out.WriteString("## ")!
+			self.out.WriteString(node.Name)!
+			self.out.WriteString("\n```jule\n")!
+			self.out.WriteString(node.Code)!
+			self.out.WriteString("\n```\n")!
 			self.gendoc(node)
 			self.handleStructMeta(node)
 		}
@@ -359,13 +359,13 @@ impl gen {
 			if node.Owner != doc::Enum && node.Owner != doc::TypeEnum {
 				continue
 			}
-			self.out.WriteStr("\n\n")!
+			self.out.WriteString("\n\n")!
 			self.pushJmp(node, 0)
-			self.out.WriteStr("## ")!
-			self.out.WriteStr(node.Name)!
-			self.out.WriteStr("\n```jule\n")!
-			self.out.WriteStr(node.Code)!
-			self.out.WriteStr("\n```\n")!
+			self.out.WriteString("## ")!
+			self.out.WriteString(node.Name)!
+			self.out.WriteString("\n```jule\n")!
+			self.out.WriteString(node.Code)!
+			self.out.WriteString("\n```\n")!
 			self.gendoc(node)
 		}
 	}
@@ -379,10 +379,10 @@ impl gen {
 		self.enums(doc)
 		// If out have a content, add new-line to separate jump table.
 		if self.out.Len() > 0 {
-			self.jmp.WriteStr("\n\n")!
+			self.jmp.WriteString("\n\n")!
 		}
-		self.jmp.WriteStr(self.out.Str())!
-		ret unsafe { self.jmp.Buf() }
+		self.jmp.WriteString(self.out.String())!
+		return unsafe { self.jmp.Buf() }
 	}
 }
 
@@ -390,5 +390,5 @@ impl gen {
 fn Gen(mut doc: []&doc::Doc): []byte {
 	mut gen := new(gen)
 	gen.jmpc = {}
-	ret bytes::TrimSpace(gen.gen(doc))
+	return bytes::TrimSpace(gen.gen(doc))
 }

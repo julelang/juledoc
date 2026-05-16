@@ -7,7 +7,7 @@ use "std/strings"
 use "std/unicode"
 
 struct ctxBuilder {
-	mut lines:  []str
+	mut lines:  []string
 	mut i:      int
 	mut indent: int
 }
@@ -30,7 +30,7 @@ impl ctxBuilder {
 		}
 
 		// Append the first line.
-		txt.WriteStr(line)!
+		txt.WriteString(line)!
 
 		self.i++ // Skip current line.
 		for self.i < len(self.lines); self.i++ {
@@ -51,18 +51,18 @@ impl ctxBuilder {
 					break
 				}
 				txt.WriteByte(' ')!
-				txt.WriteStr(newLine)!
+				txt.WriteString(newLine)!
 				continue
 			}
 			break
 		}
-		ret doc::Text(txt.Str())
+		return doc::Text(txt.String())
 	}
 
-	fn list(*self, mut line: str, mark: str): doc::ListItem {
+	fn list(*self, mut line: string, mark: string): doc::ListItem {
 		mut txt := strings::Builder{}
-		listctx := line[len(mark):]                // Line with no list mark.
-		txt.WriteStr(strings::TrimSpace(listctx))! // Add text with no list mark.
+		listctx := line[len(mark):]                   // Line with no list mark.
+		txt.WriteString(strings::TrimSpace(listctx))! // Add text with no list mark.
 		self.i++                                   // Skip current line.
 		// If possible, concat following lines.
 		for self.i < len(self.lines); self.i++ {
@@ -74,11 +74,11 @@ impl ctxBuilder {
 			}
 
 			txt.WriteByte(' ')!
-			txt.WriteStr(line)!
+			txt.WriteString(line)!
 		}
-		ret doc::ListItem{
+		return doc::ListItem{
 			Mark: mark,
-			Text: txt.Str(),
+			Text: txt.String(),
 		}
 	}
 
@@ -89,7 +89,7 @@ impl ctxBuilder {
 		if len(line) == 0 {
 			ctx.Node = doc::Separator(true)
 			self.i++
-			ret ctx
+			return ctx
 		}
 		mark := isList(line)
 		if len(mark) > 0 {
@@ -97,13 +97,13 @@ impl ctxBuilder {
 		} else {
 			ctx.Node = self.text()
 		}
-		ret ctx
+		return ctx
 	}
 
 	// Removes leading and trailing separator lines.
 	fn simplifyLines(*self) {
 		if len(self.lines) == 0 {
-			ret
+			return
 		}
 		mut i := 0
 		for i < len(self.lines); i++ {
@@ -115,7 +115,7 @@ impl ctxBuilder {
 		}
 		self.lines = self.lines[i:]
 		if len(self.lines) == 0 {
-			ret
+			return
 		}
 		i = len(self.lines) - 1
 		for ; i-- {
@@ -129,7 +129,7 @@ impl ctxBuilder {
 	}
 
 	// Builds context from doc comments.
-	fn build(*self, doc: str): []doc::Context {
+	fn build(*self, doc: string): []doc::Context {
 		mut ctx := make([]doc::Context, 0)
 		self.i = 0
 		self.lines = strings::Split(doc, "\n")
@@ -149,7 +149,7 @@ impl ctxBuilder {
 			}
 			ctx = append(ctx, lineCtx)
 		}
-		ret ctx
+		return ctx
 	}
 }
 
@@ -157,13 +157,13 @@ impl ctxBuilder {
 // returns with indentation level of line.
 // If ws true, ignores leading and trailing whitespaces.
 // Returns ignored leading whitespace count as tws.
-fn handleDocLine(mut line: str, ws: bool): (rest: str, indent: int, tws: int) {
+fn handleDocLine(mut line: string, ws: bool): (rest: string, indent: int, tws: int) {
 	if len(line) == 0 {
-		ret "", 0, 0
+		return "", 0, 0
 	}
 	line = line[2:] // Remove comment prefix.
 	if len(line) == 0 {
-		ret line, 0, 0
+		return line, 0, 0
 	}
 	if line[0] == ' ' {
 		line = line[1:]
@@ -189,17 +189,17 @@ fn handleDocLine(mut line: str, ws: bool): (rest: str, indent: int, tws: int) {
 		// Use "\t" to trim mixed tabs.
 		rest = strings::Trim(rest, " \t")
 	}
-	ret
+	return
 }
 
 // Cheks line for list nodes and returns list mark string if any list node exist.
 // Otherwise returns zero-length string.
-fn isList(line: str): str {
+fn isList(line: string): string {
 	if len(line) == 0 {
-		ret ""
+		return ""
 	}
 	if line[0] == '-' {
-		ret "-"
+		return "-"
 	}
 	mut i := 0
 	for i < len(line); i++ {
@@ -207,10 +207,10 @@ fn isList(line: str): str {
 		if '0' <= b && b <= '9' {
 			continue
 		} else if b == '.' && i > 0 {
-			ret line[:i+1]
+			return line[:i+1]
 		} else {
 			break
 		}
 	}
-	ret ""
+	return ""
 }

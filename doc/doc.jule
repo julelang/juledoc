@@ -16,8 +16,8 @@ const StrictTypeAlias = 1 << 7
 
 // Entire documentation of an entry.
 struct Doc {
-	Code:  str // Formatted code representation of the documentation owner.
-	Name:  str // Name of the owner.
+	Code:  string // Formatted code representation of the documentation owner.
+	Name:  string // Name of the owner.
 	Owner: Owner
 	Ctx:   []Context
 	Meta:  Meta
@@ -37,12 +37,12 @@ struct Context {
 }
 
 // Plain text.
-type Text: str
+type Text: string
 
 // List item text.
 struct ListItem {
-	Mark: str
-	Text: str
+	Mark: string
+	Text: string
 }
 
 // Separator.

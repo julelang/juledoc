@@ -10,7 +10,7 @@ use "std/unicode"
 use "std/unicode/utf8"
 
 struct metaHashStruct {
-	ident: str
+	ident: string
 	meta:  &doc::MetaStruct
 }
 
@@ -23,28 +23,28 @@ struct Builder {
 
 impl Builder {
 	// Formats node and returns formatted code (including documentation comments).
-	fn formatNode(*self, mut node: ast::Node): str {
+	fn formatNode(*self, mut node: ast::Node): string {
 		self.fmt.buf.Clear()
 		self.fmt.node(node)
-		ret strings::TrimSpace(self.fmt.buf.Str())
+		return strings::TrimSpace(self.fmt.buf.String())
 	}
 
 	// Formats type and returns formatted code.
-	fn formatType(*self, mut t: &ast::Expr): str {
+	fn formatType(*self, mut t: &ast::Expr): string {
 		self.fmt.buf.Clear()
 		self.fmt.formatType(t)
-		ret strings::TrimSpace(self.fmt.buf.Str())
+		return strings::TrimSpace(self.fmt.buf.String())
 	}
 
 	// Builds context from doc comments.
-	fn buildCtx(*self, doc: str): []doc::Context {
+	fn buildCtx(*self, doc: string): []doc::Context {
 		ctxb := ctxBuilder{}
-		ret ctxb.build(doc)
+		return ctxb.build(doc)
 	}
 
 	// Reads documentation comments from code and returns meta.
 	// Also returns code with no documentation comments.
-	fn readDocComments(*self, mut code: str): (str, []doc::Context) {
+	fn readDocComments(*self, mut code: string): (string, []doc::Context) {
 		// Read doc comments.
 		mut doc := strings::Builder{}
 		for len(code) > 0 {
@@ -64,20 +64,20 @@ impl Builder {
 				break
 			}
 			if len(code) >= 2 && code[:2] == "//" {
-				doc.WriteStr(code[:i])!
+				doc.WriteString(code[:i])!
 			} else {
 				break
 			}
 			code = code[i:]
 		}
-		mut ctx := self.buildCtx(strings::TrimSpace(doc.Str()))
-		ret code, ctx
+		mut ctx := self.buildCtx(strings::TrimSpace(doc.String()))
+		return code, ctx
 	}
 
-	fn formatMainNode(*self, mut ast: &ast::AST, mut &i: *int): str {
+	fn formatMainNode(*self, mut ast: &ast::AST, mut &i: *int): string {
 		mut data, ok := ast.Nodes[*i].Data.(&ast::Var)
 		if !ok {
-			ret self.formatNode(ast.Nodes[*i])
+			return self.formatNode(ast.Nodes[*i])
 		}
 		// For variables, do not use plain node formatting.
 		// Variables may be grouped with a common documentation.
@@ -105,7 +105,7 @@ impl Builder {
 		if len(data.Group) == 0 {
 			*i--
 		}
-		ret strings::TrimSpace(self.fmt.buf.Str())
+		return strings::TrimSpace(self.fmt.buf.String())
 	}
 
 	fn handleNodeDoc(*self, node: ast::Node, mut doc: &doc::Doc): &doc::Doc {
@@ -121,7 +121,7 @@ impl Builder {
 			// be consider cases like this and should write type declaration.
 			v := node.Data.(&ast::Var)
 			if v.Extern {
-				ret nil
+				return nil
 			}
 			doc.Name = v.Name
 			doc.Owner = doc::Var
@@ -132,14 +132,14 @@ impl Builder {
 			// So we will not document test functions.
 			f := node.Data.(&ast::Func)
 			if f.Extern {
-				ret nil
+				return nil
 			}
 			doc.Name = f.Name
 			doc.Owner = doc::Func
 		| &ast::Struct:
 			s := node.Data.(&ast::Struct)
 			if s.Extern {
-				ret nil
+				return nil
 			}
 			doc.Name = s.Name
 			doc.Owner = doc::Struct
@@ -158,7 +158,7 @@ impl Builder {
 		| &ast::TypeAlias:
 			a := node.Data.(&ast::TypeAlias)
 			if a.Extern {
-				ret nil
+				return nil
 			}
 			doc.Name = a.Name
 			if a.Strict {
@@ -169,7 +169,7 @@ impl Builder {
 		| &ast::Impl:
 			// no-op, handled as special case
 		}
-		ret doc
+		return doc
 	}
 
 	fn mainNode(*self, mut ast: &ast::AST, mut &i: *int): &doc::Doc {
@@ -178,7 +178,7 @@ impl Builder {
 		doc.Code = code
 		doc.Ctx = ctx
 		node := ast.Nodes[*i]
-		ret self.handleNodeDoc(node, doc)
+		return self.handleNodeDoc(node, doc)
 	}
 
 	fn node(*self, mut node: ast::Node): &doc::Doc {
@@ -186,23 +186,23 @@ impl Builder {
 		code, mut ctx := self.readDocComments(self.formatNode(node))
 		doc.Code = code
 		doc.Ctx = ctx
-		ret self.handleNodeDoc(node, doc)
+		return self.handleNodeDoc(node, doc)
 	}
 
 	// Returns MetaStruct by ident.
 	// If not exist already, appends new MetaStruct by ident and returns it.
-	fn getStructMeta(*self, ident: str): &doc::MetaStruct {
+	fn getStructMeta(*self, ident: string): &doc::MetaStruct {
 		for (_, mut hash) in self.structMetas {
 			if hash.ident == ident {
-				ret hash.meta
+				return hash.meta
 			}
 		}
 		mut meta := new(doc::MetaStruct)
 		self.structMetas = append(self.structMetas, metaHashStruct{
 			ident: ident,
-			meta: meta,
+			meta:  meta,
 		})
-		ret meta
+		return meta
 	}
 
 	fn analysisImpl(*self, mut ast: &ast::Impl) {
@@ -210,11 +210,11 @@ impl Builder {
 		// Otherwise we have to assume this implementation is not suitable to analysis.
 		dest, _ := ast.Dest.Data.(&ast::NameExpr)
 		if dest == nil {
-			ret
+			return
 		}
 		// Destination is not public. Skip.
 		if !isPub(dest.Name) {
-			ret
+			return
 		}
 		mut meta := self.getStructMeta(dest.Name)
 		// If it is trait implementation, we have to check identifier type for
@@ -223,7 +223,7 @@ impl Builder {
 		if ast.IsTraitImpl() {
 			name, isName := ast.Base.Data.(&ast::NameExpr)
 			if isName && !isPub(name.Name) {
-				ret
+				return
 			}
 			meta.Traits = append(meta.Traits, self.formatType(ast.Base))
 		}
@@ -231,7 +231,7 @@ impl Builder {
 			if isPub(m.Name) {
 				mut node := ast::Node{
 					Token: m.Token,
-					Data: m,
+					Data:  m,
 				}
 				meta.Methods = append(meta.Methods, self.node(node))
 			}
@@ -259,7 +259,7 @@ impl Builder {
 	// Will not dispatch meta.
 	fn BuildPartial(*self, mut ast: &ast::AST, mut cm: &CommentMap): []&doc::Doc {
 		if ast == nil {
-			ret nil
+			return nil
 		}
 		self.fmt.cm = cm
 		mut doc := make([]&doc::Doc, 0)
@@ -284,34 +284,34 @@ impl Builder {
 			}
 			doc = append(doc, nodeDoc)
 		}
-		ret doc
+		return doc
 	}
 
 	// Builds and returns documentation with dispatched meta.
 	fn Build(*self, mut ast: &ast::AST, mut cm: &CommentMap): []&doc::Doc {
 		mut doc := self.BuildPartial(ast, cm)
 		self.DispatchMeta(doc)
-		ret doc
+		return doc
 	}
 }
 
 // Returns new Builder.
 fn New(): &Builder {
-	ret &Builder{
+	return &Builder{
 		fmt: formatter.new(),
 	}
 }
 
 // Reports whether identifier is public.
 // Derived from julec. Stay up to date.
-fn isPub(ident: str): bool {
+fn isPub(ident: string): bool {
 	if len(ident) == 0 {
-		ret false
+		return false
 	}
 	if ident[0] < utf8::RuneSelf { // ASCII, fast way.
 		b := ident[0]
-		ret 'A' <= b && b <= 'Z'
+		return 'A' <= b && b <= 'Z'
 	}
-	r, _ := utf8::DecodeRuneStr(ident)
-	ret unicode::IsUpper(r)
+	r, _ := utf8::DecodeRuneString(ident)
+	return unicode::IsUpper(r)
 }
