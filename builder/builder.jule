@@ -9,6 +9,11 @@ use "std/strings"
 use "std/unicode"
 use "std/unicode/utf8"
 
+// A special public name for a Node.
+// This identifier intended for isPub analysis but
+// should not placed in the generated documentation.
+const publicName = "PublicName"
+
 struct metaHashStruct {
 	ident: string
 	meta:  &doc::MetaStruct
@@ -74,17 +79,18 @@ impl Builder {
 		return code, ctx
 	}
 
-	fn formatMainNode(*self, mut ast: &ast::AST, mut &i: *int): string {
-		mut data, ok := ast.Nodes[*i].Data.(&ast::Var)
+	fn formatMainNode(*self, mut ast: &ast::AST, mut &i: *int): (code: string, node: ast::Node) {
+		node = ast.Nodes[*i]
+		mut data, ok := node.Data.(&ast::Var)
 		if !ok {
-			return self.formatNode(ast.Nodes[*i])
+			return self.formatNode(node), node
 		}
 		// For variables, do not use plain node formatting.
 		// Variables may be grouped with a common documentation.
 		// Do not waste it.
 		self.fmt.buf.Clear()
 		{
-			mut row := ast.Nodes[*i].Token.Row
+			mut row := node.Token.Row
 			if len(data.Directives) > 0 {
 				row = data.Directives[0].Tag.Row
 			}
@@ -95,6 +101,7 @@ impl Builder {
 		self.fmt.groupDecls[&ast::Var, ast::Node](ast.Nodes, i, fn(mut d: &ast::Var) {
 			unsafe {
 				if !d.Extern && isPub(d.Name) {
+					node = ast.Nodes[*i]
 					self.fmt.buf.Write(self.fmt.indent)!
 					self.fmt.varDecl(d, true, [])
 				}
@@ -105,7 +112,7 @@ impl Builder {
 		if len(data.Group) == 0 {
 			*i--
 		}
-		return strings::TrimSpace(self.fmt.buf.String())
+		return strings::TrimSpace(self.fmt.buf.String()), node
 	}
 
 	fn handleNodeDoc(*self, node: ast::Node, mut doc: &doc::Doc): &doc::Doc {
@@ -174,10 +181,10 @@ impl Builder {
 
 	fn mainNode(*self, mut ast: &ast::AST, mut &i: *int): &doc::Doc {
 		mut doc := new(doc::Doc)
-		code, mut ctx := self.readDocComments(self.formatMainNode(ast, i))
+		nodeCode, node := self.formatMainNode(ast, i)
+		code, mut ctx := self.readDocComments(nodeCode)
 		doc.Code = code
 		doc.Ctx = ctx
-		node := ast.Nodes[*i]
 		return self.handleNodeDoc(node, doc)
 	}
 
