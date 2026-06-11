@@ -18,7 +18,9 @@ use "std/os/filepath"
 use "std/slices"
 use "std/strings"
 
-let mut _W = new(bool, false) // Flag -w
+let mut flag = flag::Set.New()
+let _W = flag.Add[bool]("write", 'w', false, "write result to `doc.*` file instead of stdout")
+let _Vue = flag.Add[bool]("vue", 0, false, "enable Vue compatibility")
 
 async fn writeError(message: string) {
 	os::Stderr().WriteString(message).await!
@@ -138,7 +140,11 @@ fn docdoc(mut doc: []&doc::Doc): []byte {
 	if len(doc) == 0 {
 		return nil
 	}
-	return markdown::Gen(doc)
+	mut flags := 0
+	if *_Vue {
+		flags |= doc::VUE
+	}
+	return markdown::Gen(doc, flags)
 }
 
 async fn saveFile(path: string, ctx: []byte) {
@@ -237,8 +243,6 @@ async fn docCommand(path: string) {
 async fn main() {
 	mut args := os::Args()
 	args = args[1:] // Skip program path.
-	mut flag := flag::Set.New()
-	flag.AddVar(_W, "write", 'w', "write result to `doc.*` file instead of stdout")
 	args = flag.Parse(args)!
 	if len(args) > 0 {
 		docCommand(args[0]).await

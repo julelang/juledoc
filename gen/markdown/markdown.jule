@@ -47,9 +47,11 @@ let jmpReplacer = strings::Replacer.New("\n", " ", "\t", "")
 
 // Generates Markdown documentation from documentation data.
 struct gen {
-	jmp:  strings::Builder // Jump table (aka contents list).
-	jmpc: map[string]int   // Counter for jump table contents.
-	out:  strings::Builder // Whole page.
+	jmp:              strings::Builder // Jump table (aka contents list).
+	jmpc:             map[string]int   // Counter for jump table contents.
+	out:              strings::Builder // Whole page.
+	flags:            int
+	jmpHeaderWritten: bool
 }
 
 impl gen {
@@ -166,10 +168,11 @@ impl gen {
 		}
 		// Jump table have content. Add new-line.
 		// Otherwise add the index title.
-		if self.jmp.Len() > 0 {
+		if self.jmpHeaderWritten {
 			self.jmp.WriteString("\\\n")!
 		} else {
 			self.jmp.WriteString("## Index\n\n")!
+			self.jmpHeaderWritten = true
 		}
 		// Write indentation.
 		self.jmp.WriteString(strings::Repeat(space, spacePerIndent*indent))!
@@ -371,6 +374,13 @@ impl gen {
 	}
 
 	fn gen(mut &self, mut doc: []&doc::Doc): []byte {
+		// If Vue compatibility is enabled, push `v-pre` block.
+		// Otherwise some documentation comments may be treated
+		// like a Vue template code, which is leading to errors.
+		if self.flags&doc::VUE != 0 {
+			self.jmp.WriteString("::: v-pre\n\n")!
+		}
+
 		self.vars(doc)
 		self.typeAliases(doc)
 		self.funcs(doc)
@@ -382,13 +392,20 @@ impl gen {
 			self.jmp.WriteString("\n\n")!
 		}
 		self.jmp.WriteString(self.out.String())!
+
+		// Close `v-pre` block.
+		if self.flags&doc::VUE != 0 {
+			self.jmp.WriteString("\n\n:::")!
+		}
+
 		return unsafe { self.jmp.Buf() }
 	}
 }
 
 // Generates Markdown documentation from documentation data.
-fn Gen(mut doc: []&doc::Doc): []byte {
+fn Gen(mut doc: []&doc::Doc, flags: int): []byte {
 	mut gen := new(gen)
+	gen.flags = flags
 	gen.jmpc = {}
 	return bytes::TrimSpace(gen.gen(doc))
 }
