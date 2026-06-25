@@ -100,7 +100,7 @@ impl Builder {
 		}
 		self.fmt.groupDecls[&ast::Var, ast::Node](ast.Nodes, i, fn(mut d: &ast::Var) {
 			unsafe {
-				if !d.Extern && isPub(d.Name) {
+				if d.Flags&ast::F_EXTERN == 0 && isPub(d.Name) {
 					node = ast.Nodes[*i]
 					self.fmt.buf.Write(self.fmt.indent)!
 					self.fmt.varDecl(d, true, [])
@@ -127,7 +127,7 @@ impl Builder {
 			// Reader cannot know the type of the "foo". The code writer should
 			// be consider cases like this and should write type declaration.
 			v := node.Data.(&ast::Var)
-			if v.Extern {
+			if v.Flags&ast::F_EXTERN != 0 {
 				return nil
 			}
 			doc.Name = v.Name
@@ -138,14 +138,14 @@ impl Builder {
 			// According to Jule's test function rules, a test function never can be public.
 			// So we will not document test functions.
 			f := node.Data.(&ast::Func)
-			if f.Extern {
+			if f.Flags&ast::F_EXTERN != 0 {
 				return nil
 			}
 			doc.Name = f.Name
 			doc.Owner = doc::Func
 		| &ast::Struct:
 			s := node.Data.(&ast::Struct)
-			if s.Extern {
+			if s.Flags&ast::F_EXTERN != 0 {
 				return nil
 			}
 			doc.Name = s.Name
@@ -164,11 +164,11 @@ impl Builder {
 			doc.Owner = doc::TypeEnum
 		| &ast::TypeAlias:
 			a := node.Data.(&ast::TypeAlias)
-			if a.Extern {
+			if a.Flags&ast::F_EXTERN != 0 {
 				return nil
 			}
 			doc.Name = a.Name
-			if a.Strict {
+			if a.Flags&ast::F_STRICT != 0 {
 				doc.Owner = doc::StrictTypeAlias
 			} else {
 				doc.Owner = doc::TypeAlias

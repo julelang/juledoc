@@ -515,13 +515,13 @@ impl formatter {
 				self.write(" ")
 			}
 			self.popRowCommentsByC(p.Token.Row, p.Token.Column, false)
-			if p.Mutable {
+			if p.Flags&ast::F_MUTABLE != 0 {
 				self.write("mut ")
 			}
 			if short {
 				self.write(p.Name)
 			} else {
-				if p.Reference {
+				if p.Flags&ast::F_REFERENCE != 0 {
 					self.write("&")
 				}
 				if p.IsSelf() {
@@ -538,11 +538,11 @@ impl formatter {
 					if !jule::IsAnon(p.Name) {
 						self.write(p.Name)
 						self.write(": ")
-					} else if p.Reference {
+					} else if p.Flags&ast::F_REFERENCE != 0 {
 						self.write("_: ")
 					}
 					self.popRowCommentsByC(p.Type.Token.Row, p.Type.Token.Column, false)
-					if p.Variadic {
+					if p.Flags&ast::F_VARIADIC != 0 {
 						self.write("...")
 					}
 					self.formatType(p.Type)
@@ -607,13 +607,13 @@ impl formatter {
 			self.directives(d.Directives)
 			self.buf.Write(self.indent)!
 		}
-		if d.Extern {
+		if d.Flags&ast::F_EXTERN != 0 {
 			self.write("extern ")
 		}
-		if d.Unsafe {
+		if d.Flags&ast::F_UNSAFE != 0 {
 			self.write("unsafe ")
 		}
-		if d.Async {
+		if d.Flags&ast::F_ASYNC != 0 {
 			self.write("async ")
 		}
 		self.write("fn")
@@ -623,14 +623,14 @@ impl formatter {
 		}
 		self.generics(d.Generics)
 		self.params(d)
-		if d.Fallible {
+		if d.Flags&ast::F_FALLIBLE != 0 {
 			self.write("!")
 		}
 		if d.Result.Type != nil {
 			self.write(": ")
 			self.result(d.Result)
 		}
-		if d.IsShort() && d.Scope.Deferred {
+		if d.IsShort() && d.Scope.Flags&ast::F_DEFER != 0 {
 			// one-liner body
 			self.write(" ")
 			mut e := d.Scope.Stmts[0].Data.(&ast::Expr)
@@ -656,7 +656,7 @@ impl formatter {
 	// Leading fields used to calculate maximum declaration length of group for padding.
 	fn field(&self, mut f: &field, mut fieldMax: int, mut typeMax: int) {
 		self.buf.Write(self.indent)!
-		if f.f.Mutable {
+		if f.f.Flags&ast::F_MUTABLE != 0 {
 			self.write("mut ")
 			fieldMax -= 4
 		}
@@ -717,7 +717,7 @@ impl formatter {
 				self.write("\n")
 			}
 		}
-		if d.Extern {
+		if d.Flags&ast::F_EXTERN != 0 {
 			self.write("extern ")
 		}
 		self.write("struct ")
@@ -796,13 +796,13 @@ impl formatter {
 	}
 
 	fn typeAliasDecl(&self, mut d: &ast::TypeAlias) {
-		if d.Extern {
+		if d.Flags&ast::F_EXTERN != 0 {
 			self.write("extern ")
 		}
 		self.write("type ")
 		self.write(d.Name)
 		self.generics(d.Generics)
-		if d.Strict {
+		if d.Flags&ast::F_STRICT != 0 {
 			self.write(": ")
 		} else {
 			self.write(" = ")
@@ -860,21 +860,21 @@ impl formatter {
 			if len(d.Directives) != 0 {
 				self.directives(d.Directives)
 			}
-			if d.Extern {
+			if d.Flags&ast::F_EXTERN != 0 {
 				self.write("extern let ")
 			} else {
-				if d.Static {
+				if d.Flags&ast::F_STATIC != 0 {
 					self.write("let ")
-				} else if d.Const {
+				} else if d.Flags&ast::F_CONST != 0 {
 					self.write("const ")
 				} else if d.Op == nil || d.Op.ID == token::ASSIGN {
 					self.write("let ")
 				}
 			}
-			if d.Mutable {
+			if d.Flags&ast::F_MUTABLE != 0 {
 				self.write("mut ")
 			}
-			if d.Reference {
+			if d.Flags&ast::F_REFERENCE != 0 {
 				self.write("&")
 			}
 		}
@@ -981,7 +981,7 @@ impl formatter {
 			}
 			self.row = decl.token.Row
 			mut fm := 0
-			if decl.f.Mutable {
+			if decl.f.Flags&ast::F_MUTABLE != 0 {
 				fm += len("mut ")
 			}
 			fm += utf8::RuneCountString(decl.f.Name)
@@ -1546,7 +1546,7 @@ impl exprFormatter {
 	}
 
 	fn name(&self, id: &ast::NameExpr) {
-		if id.Extern {
+		if id.Flags&ast::F_EXTERN != 0 {
 			self.write("extern.")
 		}
 		self.write(id.Name)
@@ -1663,7 +1663,7 @@ impl exprFormatter {
 
 	fn call(&self, mut f: &ast::CallExpr) {
 		self.fmt.row = f.Token.Row
-		if f.IsCo {
+		if f.Flags&ast::F_CO != 0 {
 			self.write("co ")
 		}
 		parent := isParentNeededForCall(f.Func)
@@ -1677,7 +1677,7 @@ impl exprFormatter {
 		self.write("(")
 		self.args(f)
 		self.write(")")
-		if f.Await {
+		if f.Flags&ast::F_AWAIT != 0 {
 			self.write(".await")
 		}
 		match f.Handler {
