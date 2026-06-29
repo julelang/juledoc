@@ -118,14 +118,14 @@ fn containsBuildDirective(ast: &ast::AST): bool {
 async fn getAST(path: string, mut data: []byte): (&ast::AST, &builder::CommentMap) {
 	mut file := token::FileSet.New(path)
 	unsafe { file.FillMut(data) }
-	mut errors := token::ScanAll(file, token::Comments)
+	mut tokens, mut errors := token::ScanAll(file, token::Standard|token::Comments)
 	if len(errors) > 0 {
 		writeError("error: file could not formatted, have error(s): " + path).await
 		return nil, nil
 	}
 
-	mut cm := builder::BuildCommentMap(&file.Tokens)
-	mut finfo := parser::ParseFile(file)
+	mut cm := builder::BuildCommentMap(&tokens)
+	mut finfo := parser::ParseFile(file, tokens)
 	if len(finfo.Errors) > 0 {
 		writeError("error: file could not formatted, have error(s): " + path).await
 		return nil, nil
