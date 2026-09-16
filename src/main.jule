@@ -148,7 +148,7 @@ fn docdoc(mut doc: []&doc::Doc): []byte {
 }
 
 fn saveFile(path: string, ctx: []byte) {
-	os::WriteFile(path, ctx, 0o660) else {
+	os::WriteFile(path, ctx, 0o660) catch {
 		writeError("error: could not write to file: " + path)
 		return
 	}
@@ -167,7 +167,7 @@ fn docFile(path: string) {
 		writeError("error: no symbol to document: " + path)
 		return
 	}
-	mut ctx := os::ReadFile(path) else {
+	mut ctx := os::ReadFile(path) catch {
 		writeError("error: file could not read: " + path)
 		return
 	}
@@ -181,7 +181,7 @@ fn docFile(path: string) {
 }
 
 fn docPackage(path: string) {
-	mut dirents := os::ReadDir(path) else {
+	mut dirents := os::ReadDir(path) catch {
 		writeError("error: connot read package directory: " + path)
 		return
 	}
@@ -202,7 +202,7 @@ fn docPackage(path: string) {
 			continue
 		}
 		filepath := filepath::Join(path, dirent.Name)
-		mut ctx := os::ReadFile(filepath) else {
+		mut ctx := os::ReadFile(filepath) catch {
 			writeError("error: file could not read: " + filepath)
 			return
 		}
@@ -222,7 +222,7 @@ fn docPackage(path: string) {
 }
 
 fn docCommand(path: string) {
-	stat := os::Stat(path) else {
+	stat := os::Stat(path) catch {
 		writeError("error: connot read path: " + path)
 		return
 	}
