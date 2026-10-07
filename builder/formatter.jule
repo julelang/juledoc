@@ -1233,7 +1233,7 @@ impl formatter {
 		mut max := 0
 		mut rowBreak := indexRowBrake(rows)
 		for j, line in lines {
-			isPub := isPub(vars[start+j].Name) // Ignore private ones.
+			isPub := isPub(vars[start+j].Name) // Ignore unexported ones.
 			row := rows[j]
 			if j == rowBreak {
 				self.write("\n")

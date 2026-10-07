@@ -79,11 +79,11 @@ impl Builder {
 		return code, ctx
 	}
 
-	fn formatMainNode(*self, mut ast: &ast::AST, mut &i: *int): (code: string, node: ast::Node) {
+	fn formatMainNode(*self, mut ast: &ast::AST, mut &i: *int): (code: string, node: ast::Node, forcePub: bool) {
 		node = ast.Nodes[*i]
 		mut data, ok := node.Data.(&ast::Var)
 		if !ok {
-			return self.formatNode(node), node
+			return self.formatNode(node), node, false
 		}
 		// For variables, do not use plain node formatting.
 		// Variables may be grouped with a common documentation.
@@ -107,12 +107,21 @@ impl Builder {
 				}
 			}
 		})
-		// If variable is not grouped, the build function will advance the offset,
+		// If variable is not grouped, the buil function will advance the offset,
 		// avoid false offset.
 		if len(data.Group) == 0 {
 			*i--
 		}
-		return strings::TrimSpace(self.fmt.buf.String()), node
+		// Force to be public if grouped with an exported variable.
+		if len(data.Group) > 0 {
+			for _, v in data.Group {
+				if isPub(v.Name) {
+					forcePub = true
+					break
+				}
+			}
+		}
+		return strings::TrimSpace(self.fmt.buf.String()), node, forcePub
 	}
 
 	fn handleNodeDoc(*self, node: ast::Node, mut doc: &doc::Doc): &doc::Doc {
@@ -179,13 +188,13 @@ impl Builder {
 		return doc
 	}
 
-	fn mainNode(*self, mut ast: &ast::AST, mut &i: *int): &doc::Doc {
+	fn mainNode(*self, mut ast: &ast::AST, mut &i: *int): (&doc::Doc, forcePub: bool) {
 		mut doc := new(doc::Doc)
-		nodeCode, node := self.formatMainNode(ast, i)
+		nodeCode, node, forcePub := self.formatMainNode(ast, i)
 		code, mut ctx := self.readDocComments(nodeCode)
 		doc.Code = code
 		doc.Ctx = ctx
-		return self.handleNodeDoc(node, doc)
+		return self.handleNodeDoc(node, doc), forcePub
 	}
 
 	fn node(*self, mut node: ast::Node): &doc::Doc {
@@ -281,12 +290,12 @@ impl Builder {
 			|:
 				// no-op
 			}
-			mut nodeDoc := self.mainNode(ast, &i)
+			mut nodeDoc, forcePub := self.mainNode(ast, &i)
 			if nodeDoc == nil {
 				continue
 			}
-			// Do not add exported defines.
-			if !isPub(nodeDoc.Name) {
+			// Do not add unexported defines.
+			if !forcePub && !isPub(nodeDoc.Name) {
 				continue
 			}
 			doc = append(doc, nodeDoc)
