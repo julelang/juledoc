@@ -1231,9 +1231,11 @@ impl formatter {
 
 		n = 0
 		mut max := 0
+		mut hidden := false
 		mut rowBreak := indexRowBrake(rows)
 		for j, line in lines {
 			isPub := isPub(vars[start+j].Name) // Ignore unexported ones.
+			hidden = hidden || !isPub
 			row := rows[j]
 			if j == rowBreak {
 				self.write("\n")
@@ -1264,6 +1266,10 @@ impl formatter {
 			if isPub {
 				self.write("\n")
 			}
+		}
+		if hidden {
+			self.buf.Write(self.indent)!
+			self.write("// NOTE: contains filtered hidden or unexported variables\n")
 		}
 	}
 
